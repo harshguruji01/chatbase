@@ -36,19 +36,15 @@ export const UserSearch: React.FC<UserSearchProps> = ({ onStartChat, onViewProfi
       setIsLoading(true);
       setHasSearched(true);
       try {
-        const isUserCode = q.toUpperCase().startsWith('HG');
+
+        const cleanQ = q.replace(/^@/, '').trim();
         let dbQuery = supabase
           .from('profiles')
           .select('*')
           .neq('id', user.id)
           .limit(20);
 
-        if (isUserCode) {
-          dbQuery = dbQuery.ilike('user_code', `%${q.toUpperCase()}%`);
-        } else {
-          const cleanQ = q.replace(/^@/, '');
-          dbQuery = dbQuery.or(`username.ilike.%${cleanQ}%,display_name.ilike.%${cleanQ}%`);
-        }
+        dbQuery = dbQuery.or(`user_code.ilike.%${cleanQ}%,username.ilike.%${cleanQ}%,display_name.ilike.%${cleanQ}%`);
 
         const { data, error } = await dbQuery;
 

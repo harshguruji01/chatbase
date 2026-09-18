@@ -1,5 +1,4 @@
-import React from 'react';
-import { MessageSquare, Compass, Search, User, ShieldAlert, Moon, Sun, Laptop } from 'lucide-react';
+import { MessageSquare, Compass, Search, User, ShieldAlert, Moon, Sun, Laptop, Settings } from 'lucide-react';
 import type { TabType } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
@@ -11,9 +10,10 @@ interface SidebarProps {
   activeTab: TabType;
   onSelectTab: (tab: TabType) => void;
   onGoToAdmin: () => void;
+  onOpenSettings?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab, onGoToAdmin }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab, onGoToAdmin, onOpenSettings }) => {
   const { profile, isAdmin } = useAuth();
   const { conversations } = useChat();
   const { theme, setTheme } = useTheme();
@@ -79,6 +79,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab, onGoTo
           <User size={20} />
           <span>My Profile</span>
         </button>
+
+        {onOpenSettings && (
+          <button
+            className="desktop-nav-btn"
+            onClick={onOpenSettings}
+            title="Settings (Password, Biodata, Theme, Accounts)"
+          >
+            <Settings size={20} />
+            <span>Settings</span>
+          </button>
+        )}
 
         <button
           className="desktop-nav-btn"

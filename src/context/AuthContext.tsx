@@ -3,12 +3,22 @@ import { supabase } from '../lib/supabase';
 import type { Profile } from '../types';
 import type { User, Session } from '@supabase/supabase-js';
 
+export interface SavedAccount {
+  id: string;
+  user_code: string;
+  username: string;
+  display_name: string;
+  avatar_url?: string | null;
+  email?: string | null;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
   isLoading: boolean;
   isAdmin: boolean;
+  savedAccounts: SavedAccount[];
   signIn: (identifier: string, password: string) => Promise<{ error?: string }>;
   signUp: (data: {
     username: string;
@@ -23,6 +33,8 @@ interface AuthContextType {
   updateLocation: (lat: number, lon: number) => Promise<void>;
   deleteAccount: () => Promise<{ error?: string }>;
   refreshProfile: () => Promise<void>;
+  changePassword: (newPassword: string) => Promise<{ error?: string }>;
+  removeSavedAccount: (id: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,6 +44,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>(() => {
+    try {
+      const stored = localStorage.getItem('chatbase_saved_accounts');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const saveAccountLocally = (p: Profile) => {
+    try {
+      setSavedAccounts((prev) => {
+        const filtered = prev.filter((a) => a.id !== p.id);
+        const updated = [
+          {
+            id: p.id,
+            user_code: p.user_code,
+            username: p.username,
+            display_name: p.display_name,
+            avatar_url: p.avatar_url,
+            email: p.email,
+          },
+          ...filtered,
+        ].slice(0, 5);
+        localStorage.setItem('chatbase_saved_accounts', JSON.stringify(updated));
+        return updated;
+      });
+    } catch (e) {
+      console.warn('Failed to store saved account', e);
+    }
+  };
+
+  const removeSavedAccount = (id: string) => {
+    setSavedAccounts((prev) => {
+      const updated = prev.filter((a) => a.id !== id);
+      localStorage.setItem('chatbase_saved_accounts', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -44,10 +95,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.warn('Profile fetch warning:', error.message);
       } else if (data) {
-        setProfile(data as Profile);
+        const prof = data as Profile;
+        setProfile(prof);
+        saveAccountLocally(prof);
       }
     } catch (err) {
       console.error('Error fetching profile:', err);
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfile(user.id);
     }
   };
 
@@ -274,9 +333,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const refreshProfile = async () => {
-    if (user) {
-      await fetchProfile(user.id);
+  const changePassword = async (newPassword: string) => {
+    try {
+      if (newPassword.length < 6) {
+        return { error: 'Password must be at least 6 characters.' };
+      }
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) return { error: error.message };
+      return {};
+    } catch (err: any) {
+      return { error: err.message || 'Failed to update password.' };
     }
   };
 
@@ -290,6 +356,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         profile,
         isLoading,
         isAdmin,
+        savedAccounts,
         signIn,
         signUp,
         signOut,
@@ -297,6 +364,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateLocation,
         deleteAccount,
         refreshProfile,
+        changePassword,
+        removeSavedAccount,
       }}
     >
       {children}

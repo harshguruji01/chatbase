@@ -11,6 +11,10 @@ import {
   Trash2,
   Check,
   ShieldAlert,
+  Lock,
+  Settings,
+  Users,
+  User as UserIcon,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -19,6 +23,7 @@ import { OutlinedButton } from '../common/OutlinedButton';
 import { EditProfileModal } from './EditProfileModal';
 import { PrivacySettingsModal } from './PrivacySettingsModal';
 import { AboutModal } from './AboutModal';
+import { SettingsModal } from '../settings/SettingsModal';
 import { Modal } from '../common/Modal';
 import { copyToClipboard } from '../../lib/utils';
 import { supabase } from '../../lib/supabase';
@@ -38,6 +43,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onGoToAdmin }) => {
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<'biodata' | 'password' | 'theme' | 'accounts'>('biodata');
   const [copiedId, setCopiedId] = useState(false);
 
   const [followersCount, setFollowersCount] = useState(0);
@@ -166,16 +173,34 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onGoToAdmin }) => {
             </div>
           </div>
 
-          {/* Edit Profile Button */}
-          <OutlinedButton
-            variant="secondary"
-            size="md"
-            onClick={() => setIsEditOpen(true)}
-            icon={<Edit3 size={16} />}
-            style={{ width: '100%', maxWidth: '240px' }}
-          >
-            Edit Profile
-          </OutlinedButton>
+          {/* Action Buttons: Edit Biodata & Settings */}
+          <div style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '340px' }}>
+            <OutlinedButton
+              variant="secondary"
+              size="md"
+              onClick={() => {
+                setSettingsTab('biodata');
+                setIsSettingsOpen(true);
+              }}
+              icon={<Edit3 size={16} />}
+              style={{ flex: 1 }}
+            >
+              Edit Biodata
+            </OutlinedButton>
+
+            <OutlinedButton
+              variant="primary"
+              size="md"
+              onClick={() => {
+                setSettingsTab('password');
+                setIsSettingsOpen(true);
+              }}
+              icon={<Settings size={16} />}
+              style={{ flex: 1 }}
+            >
+              Settings
+            </OutlinedButton>
+          </div>
         </div>
 
         {/* Admin Dashboard Entry */}
@@ -284,6 +309,90 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onGoToAdmin }) => {
         {/* Settings Links */}
         <div className="card" style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <button
+            onClick={() => {
+              setSettingsTab('password');
+              setIsSettingsOpen(true);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 14px',
+              borderRadius: 'var(--radius-md)',
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              fontSize: '0.92rem',
+              fontWeight: 500,
+              width: '100%',
+              textAlign: 'left',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Lock size={18} color="var(--color-primary)" />
+              <span>Change Password</span>
+            </div>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Update ↗</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setSettingsTab('biodata');
+              setIsSettingsOpen(true);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 14px',
+              borderRadius: 'var(--radius-md)',
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              fontSize: '0.92rem',
+              fontWeight: 500,
+              width: '100%',
+              textAlign: 'left',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <UserIcon size={18} color="var(--color-primary)" />
+              <span>Biodata / About Me</span>
+            </div>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Edit ↗</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setSettingsTab('accounts');
+              setIsSettingsOpen(true);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 14px',
+              borderRadius: 'var(--radius-md)',
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              fontSize: '0.92rem',
+              fontWeight: 500,
+              width: '100%',
+              textAlign: 'left',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Users size={18} color="var(--color-primary)" />
+              <span>Switch to Another Account</span>
+            </div>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Manage ↗</span>
+          </button>
+
+          <button
             onClick={() => setIsPrivacyOpen(true)}
             style={{
               display: 'flex',
@@ -300,8 +409,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onGoToAdmin }) => {
               width: '100%',
               textAlign: 'left',
             }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--bg-card-hover)')}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <Shield size={18} color="var(--color-primary)" />
@@ -327,8 +434,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onGoToAdmin }) => {
               width: '100%',
               textAlign: 'left',
             }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--bg-card-hover)')}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <Info size={18} color="var(--color-accent)" />
@@ -363,6 +468,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onGoToAdmin }) => {
       </div>
 
       {/* Modals */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        defaultTab={settingsTab}
+      />
       <EditProfileModal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} />
       <PrivacySettingsModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
       <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />

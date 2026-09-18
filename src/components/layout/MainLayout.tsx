@@ -9,6 +9,7 @@ import { NearbyDiscovery } from '../nearby/NearbyDiscovery';
 import { UserSearch } from '../search/UserSearch';
 import { ProfileView } from '../profile/ProfileView';
 import { LocationPermissionModal } from '../auth/LocationPermissionModal';
+import { SettingsModal } from '../settings/SettingsModal';
 import { BrandHeader } from '../common/BrandHeader';
 
 interface MainLayoutProps {
@@ -20,6 +21,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onGoToAdmin }) => {
 
   const [activeTab, setActiveTab] = useState<TabType>('chat');
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth > 900);
 
   useEffect(() => {
@@ -55,6 +57,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onGoToAdmin }) => {
             setActiveTab(tab);
           }}
           onGoToAdmin={onGoToAdmin}
+          onOpenSettings={() => setIsSettingsOpen(true)}
         />
       )}
 
@@ -138,6 +141,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onGoToAdmin }) => {
       <LocationPermissionModal
         isOpen={showLocationModal}
         onClose={() => setShowLocationModal(false)}
+      />
+
+      {/* Global Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
       />
     </div>
   );
