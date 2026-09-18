@@ -11,7 +11,7 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { LiveUpdateSync } from './components/common/LiveUpdateSync';
 
 const ChatBaseApp: React.FC = () => {
-  const { user, isLoading, isAdmin } = useAuth();
+  const { user, isLoading } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
   const [currentRoute, setCurrentRoute] = useState<'main' | 'admin'>('main');
@@ -53,7 +53,7 @@ const ChatBaseApp: React.FC = () => {
   return (
     <MainLayout
       onGoToAdmin={() => {
-        if (isAdmin) setCurrentRoute('admin');
+        setCurrentRoute('admin');
       }}
     />
   );

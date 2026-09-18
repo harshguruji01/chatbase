@@ -10,6 +10,8 @@ import {
   Activity,
   ArrowLeft,
   FileText,
+  KeyRound,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -27,6 +29,11 @@ interface AdminDashboardProps {
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const { user, profile, isAdmin } = useAuth();
   const { showToast } = useToast();
+
+  const [unlockedByPin, setUnlockedByPin] = useState(false);
+  const [enteredPin, setEnteredPin] = useState('');
+  const [pinError, setPinError] = useState(false);
+  const [isVerifyingPin, setIsVerifyingPin] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'analytics' | 'users' | 'reports' | 'audit'>('analytics');
   const [stats, setStats] = useState({
@@ -48,17 +55,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   // Selected user for action modal
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
   const [actionReason, setActionReason] = useState('');
-  const [actionType, setActionType] = useState<'suspend' | 'unsuspend' | 'delete' | null>(null);
+  const [actionType, setActionType] = useState<'suspend' | 'unsuspend' | 'delete' | 'promote' | 'demote' | null>(null);
+
+  const hasAdminAccess = isAdmin || unlockedByPin;
 
   useEffect(() => {
-    fetchAnalytics();
-    fetchReports();
-    fetchAuditLogs();
-    fetchUsers();
-  }, []);
+    if (hasAdminAccess) {
+      fetchAnalytics();
+      fetchReports();
+      fetchAuditLogs();
+      fetchUsers();
+    }
+  }, [hasAdminAccess]);
+
+  const handleVerifyPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinError(false);
+    setIsVerifyingPin(true);
+
+    const cleanPin = enteredPin.trim();
+    if (cleanPin === 'admin123' || cleanPin === 'HarshGuruJi@2026' || cleanPin === 'admin') {
+      try {
+        if (user) {
+          // Promote current user to admin in Postgres
+          await supabase.rpc('admin_set_role', {
+            p_user_id: user.id,
+            p_role: 'admin',
+          });
+        }
+        setUnlockedByPin(true);
+        showToast('Admin access granted! Welcome Administrator.', 'success');
+      } catch (err) {
+        setUnlockedByPin(true);
+      }
+    } else {
+      setPinError(true);
+      showToast('Incorrect Admin PIN. Access denied.', 'error');
+    }
+    setIsVerifyingPin(false);
+  };
 
   const fetchAnalytics = async () => {
     try {
+      const { data, error } = await supabase.rpc('admin_get_stats');
+      if (!error && data) {
+        setStats({
+          totalUsers: data.total_users || 0,
+          activeUsers: data.active_users || 0,
+          totalMessages: data.total_messages || 0,
+          voiceMessages: data.voice_messages || 0,
+          videoMessages: data.video_messages || 0,
+          pendingReports: data.pending_reports || 0,
+          suspendedUsers: data.suspended_users || 0,
+        });
+        return;
+      }
+
+      // Fallback
       const { count: usersCount } = await supabase.from('profiles').select('id', { count: 'exact', head: true });
       const { count: suspendedCount } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_suspended', true);
       const { count: messagesCount } = await supabase.from('messages').select('id', { count: 'exact', head: true });
@@ -83,8 +136,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const { data } = await supabase.from('profiles').select('*').limit(50);
-      if (data) setUsersList(data as Profile[]);
+      const { data, error } = await supabase.rpc('admin_get_users', {
+        p_search: searchQuery.trim(),
+        p_limit: 100,
+        p_offset: 0,
+      });
+      if (!error && data) {
+        setUsersList(data as Profile[]);
+      } else {
+        const { data: fallbackData } = await supabase.from('profiles').select('*').limit(50);
+        if (fallbackData) setUsersList(fallbackData as Profile[]);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -133,16 +195,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     if (!selectedUser || !actionType) return;
     try {
       if (actionType === 'suspend') {
-        await supabase.from('profiles').update({ is_suspended: true }).eq('id', selectedUser.id);
-        await logAdminAction('SUSPEND_USER', 'user', selectedUser.id, actionReason || 'Suspended by admin');
+        const { error } = await supabase.rpc('admin_toggle_suspend', {
+          p_user_id: selectedUser.id,
+          p_suspend: true,
+          p_reason: actionReason || 'Suspended by admin',
+        });
+        if (error) throw error;
         showToast(`User @${selectedUser.username} suspended.`, 'info');
       } else if (actionType === 'unsuspend') {
-        await supabase.from('profiles').update({ is_suspended: false }).eq('id', selectedUser.id);
-        await logAdminAction('UNSUSPEND_USER', 'user', selectedUser.id, actionReason || 'Unsuspended by admin');
+        const { error } = await supabase.rpc('admin_toggle_suspend', {
+          p_user_id: selectedUser.id,
+          p_suspend: false,
+          p_reason: actionReason || 'Unsuspended by admin',
+        });
+        if (error) throw error;
         showToast(`User @${selectedUser.username} reactivated.`, 'success');
+      } else if (actionType === 'promote') {
+        const { error } = await supabase.rpc('admin_set_role', {
+          p_user_id: selectedUser.id,
+          p_role: 'admin',
+        });
+        if (error) throw error;
+        showToast(`User @${selectedUser.username} promoted to Admin!`, 'success');
+      } else if (actionType === 'demote') {
+        const { error } = await supabase.rpc('admin_set_role', {
+          p_user_id: selectedUser.id,
+          p_role: 'user',
+        });
+        if (error) throw error;
+        showToast(`User @${selectedUser.username} demoted to regular User.`, 'info');
       } else if (actionType === 'delete') {
-        await supabase.from('profiles').delete().eq('id', selectedUser.id);
-        await logAdminAction('DELETE_USER', 'user', selectedUser.id, actionReason || 'Deleted by admin');
+        const { error } = await supabase.rpc('admin_delete_user', {
+          p_user_id: selectedUser.id,
+          p_reason: actionReason || 'Deleted by admin',
+        });
+        if (error) throw error;
         showToast(`User @${selectedUser.username} permanently deleted.`, 'error');
       }
 
@@ -168,17 +255,77 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     }
   };
 
-  if (!isAdmin) {
+  if (!hasAdminAccess) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <AlertTriangle size={48} color="var(--color-danger)" style={{ margin: '0 auto 16px' }} />
-        <h2>Access Denied</h2>
-        <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
-          You do not have administrative privileges to access this area.
-        </p>
-        <OutlinedButton variant="primary" onClick={onBack} style={{ marginTop: '20px' }}>
-          Return to ChatBase
-        </OutlinedButton>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100%', padding: '24px', background: 'var(--bg-app)' }}>
+        <div
+          className="card"
+          style={{
+            maxWidth: '420px',
+            width: '100%',
+            padding: '32px 24px',
+            textAlign: 'center',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+            border: '1px solid var(--border-color)',
+          }}
+        >
+          <div
+            style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: 'rgba(99, 102, 241, 0.12)',
+              border: '1px solid var(--color-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}
+          >
+            <ShieldAlert size={32} color="var(--color-primary)" />
+          </div>
+
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 800 }}>ChatBase App Admin Console</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '6px', marginBottom: '24px' }}>
+            Enter Master Admin PIN to unlock full administration, user management, and moderation controls.
+          </p>
+
+          <form onSubmit={handleVerifyPin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="input-group">
+              <label className="input-label" style={{ textAlign: 'left' }}>Master Admin PIN / Password</label>
+              <div className="input-wrapper">
+                <KeyRound size={18} className="input-icon-left" />
+                <input
+                  type="password"
+                  className="input-field has-left-icon"
+                  placeholder="Enter PIN (e.g. admin123)"
+                  value={enteredPin}
+                  onChange={(e) => setEnteredPin(e.target.value)}
+                  autoFocus
+                  required
+                />
+              </div>
+              {pinError && (
+                <div style={{ color: 'var(--color-danger)', fontSize: '0.78rem', textAlign: 'left', marginTop: '4px' }}>
+                  Incorrect PIN. Hint: Use default master PIN (<code>admin123</code> or <code>HarshGuruJi@2026</code>)
+                </div>
+              )}
+            </div>
+
+            <OutlinedButton variant="primary" type="submit" disabled={isVerifyingPin} style={{ width: '100%', marginTop: '6px' }}>
+              <ShieldCheck size={18} />
+              {isVerifyingPin ? 'Verifying...' : 'Unlock Admin Console'}
+            </OutlinedButton>
+
+            <OutlinedButton variant="secondary" onClick={onBack} style={{ width: '100%' }}>
+              <ArrowLeft size={16} /> Return to ChatBase
+            </OutlinedButton>
+          </form>
+
+          <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border-color)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            Admin Portal by <strong>HarshGuruJi</strong> • <a href="https://www.webguruji.online" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }}>www.webguruji.online</a>
+          </div>
+        </div>
       </div>
     );
   }
@@ -216,9 +363,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
               <ShieldAlert size={22} color="var(--color-primary)" />
               <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>ChatBase Admin Control</h2>
             </div>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Logged in as admin: @{profile?.username}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Logged in as admin: @{profile?.username}
+              </span>
+              <a
+                href="/admin.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--color-primary)',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  background: 'var(--color-primary-light)',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                }}
+              >
+                🌐 Open Web HTML Portal ↗
+              </a>
+            </div>
           </div>
         </div>
 
@@ -378,6 +543,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                     <th style={{ padding: '12px 16px' }}>User</th>
                     <th style={{ padding: '12px 16px' }}>Unique ID</th>
                     <th style={{ padding: '12px 16px' }}>Email</th>
+                    <th style={{ padding: '12px 16px' }}>Role</th>
                     <th style={{ padding: '12px 16px' }}>Status</th>
                     <th style={{ padding: '12px 16px' }}>Joined</th>
                     <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
@@ -386,13 +552,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                         Loading user accounts...
                       </td>
                     </tr>
                   ) : filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                         No user accounts match your search.
                       </td>
                     </tr>
@@ -413,6 +579,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                         {u.email || 'N/A'}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
+                        <span
+                          style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            background: u.role === 'admin' ? 'rgba(99, 102, 241, 0.15)' : 'var(--bg-input)',
+                            color: u.role === 'admin' ? 'var(--color-primary)' : 'var(--text-muted)',
+                            border: u.role === 'admin' ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid var(--border-color)',
+                          }}
+                        >
+                          {u.role || 'user'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
                         {u.is_suspended ? (
                           <span style={{ color: 'var(--color-danger)', fontWeight: 600 }}>Suspended</span>
                         ) : (
@@ -423,7 +605,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                         {new Date(u.created_at).toLocaleDateString()}
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', flexWrap: 'wrap' }}>
+                          <OutlinedButton
+                            variant={u.role === 'admin' ? 'secondary' : 'primary'}
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUser(u);
+                              setActionType(u.role === 'admin' ? 'demote' : 'promote');
+                            }}
+                          >
+                            {u.role === 'admin' ? 'Make User' : 'Make Admin'}
+                          </OutlinedButton>
                           {u.is_suspended ? (
                             <OutlinedButton
                               variant="secondary"
@@ -451,6 +643,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                             variant="danger"
                             size="sm"
                             className="btn-icon"
+                            title="Permanently Delete User"
                             onClick={() => {
                               setSelectedUser(u);
                               setActionType('delete');
@@ -591,7 +784,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
               Cancel
             </OutlinedButton>
             <OutlinedButton
-              variant={actionType === 'unsuspend' ? 'primary' : 'danger'}
+              variant={actionType === 'unsuspend' || actionType === 'promote' ? 'primary' : 'danger'}
               onClick={handleExecuteUserAction}
             >
               Confirm {actionType}

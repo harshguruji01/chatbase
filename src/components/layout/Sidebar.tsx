@@ -80,16 +80,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab, onGoTo
           <span>My Profile</span>
         </button>
 
-        {isAdmin && (
-          <button
-            className="desktop-nav-btn"
-            onClick={onGoToAdmin}
-            style={{ color: 'var(--color-primary)', marginTop: '8px' }}
-          >
-            <ShieldAlert size={20} />
-            <span>Admin Panel</span>
-          </button>
-        )}
+        <button
+          className="desktop-nav-btn"
+          onClick={onGoToAdmin}
+          style={{
+            color: isAdmin ? 'var(--color-primary)' : 'var(--text-muted)',
+            marginTop: '8px',
+            background: isAdmin ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
+          }}
+          title={isAdmin ? 'Admin Dashboard (Active)' : 'Admin Console (PIN Protected)'}
+        >
+          <ShieldAlert size={20} />
+          <span>{isAdmin ? 'Admin Panel' : 'Admin Portal'}</span>
+        </button>
       </div>
 
       {/* Bottom Profile Bar */}

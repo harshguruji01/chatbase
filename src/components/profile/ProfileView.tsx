@@ -178,8 +178,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onGoToAdmin }) => {
           </OutlinedButton>
         </div>
 
-        {/* Admin Dashboard Entry (If role = admin) */}
-        {isAdmin && onGoToAdmin && (
+        {/* Admin Dashboard Entry */}
+        {onGoToAdmin && (
           <div
             className="card"
             style={{
@@ -187,21 +187,30 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onGoToAdmin }) => {
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '16px 20px',
-              border: '1px solid var(--color-primary)',
-              background: 'rgba(99, 102, 241, 0.08)',
+              border: isAdmin ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
+              background: isAdmin ? 'rgba(99, 102, 241, 0.08)' : 'var(--bg-card)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <ShieldAlert size={22} color="var(--color-primary)" />
+              <ShieldAlert size={22} color={isAdmin ? 'var(--color-primary)' : 'var(--text-muted)'} />
               <div>
-                <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Admin Dashboard</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Admin Dashboard</span>
+                  {isAdmin && (
+                    <span style={{ fontSize: '0.65rem', background: 'var(--color-primary)', color: '#fff', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                      ADMIN
+                    </span>
+                  )}
+                </div>
                 <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
-                  Manage platform users, metrics, abuse reports & system logs.
+                  {isAdmin
+                    ? 'Manage platform users, metrics, abuse reports & system logs.'
+                    : 'Developer & administrative management console (PIN protected).'}
                 </p>
               </div>
             </div>
-            <OutlinedButton variant="primary" size="sm" onClick={onGoToAdmin}>
-              Open /admin
+            <OutlinedButton variant={isAdmin ? 'primary' : 'secondary'} size="sm" onClick={onGoToAdmin}>
+              {isAdmin ? 'Open Admin' : 'Admin Login'}
             </OutlinedButton>
           </div>
         )}
