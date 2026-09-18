@@ -84,20 +84,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       let emailToUse = identifier.trim();
 
-      // If user typed username or unique user code, resolve email from profiles
+      // If user typed username, unique user code (ID), or phone, resolve email via secure RPC
       if (!emailToUse.includes('@')) {
-        const isCode = emailToUse.toUpperCase().startsWith('HG');
-        const query = supabase.from('profiles').select('email');
-        if (isCode) {
-          query.eq('user_code', emailToUse.toUpperCase());
+        const { data: resolvedEmail, error: rpcError } = await supabase.rpc(
+          'get_email_by_identifier',
+          { identifier: emailToUse }
+        );
+
+        if (!rpcError && resolvedEmail) {
+          emailToUse = resolvedEmail;
         } else {
-          query.ilike('username', emailToUse);
+          // Fallback check
+          const query = supabase.from('profiles').select('email');
+          if (emailToUse.toUpperCase().startsWith('HG')) {
+            query.eq('user_code', emailToUse.toUpperCase());
+          } else {
+            query.ilike('username', emailToUse);
+          }
+          const { data: fallbackData } = await query.maybeSingle();
+          if (fallbackData?.email) {
+            emailToUse = fallbackData.email;
+          } else {
+            return { error: 'Account not found with this User ID or Username.' };
+          }
         }
-        const { data, error } = await query.maybeSingle();
-        if (error || !data?.email) {
-          return { error: 'Account not found with this username or ID.' };
-        }
-        emailToUse = data.email;
       }
 
       const { error } = await supabase.auth.signInWithPassword({

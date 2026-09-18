@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { ArrowLeft, MoreVertical, ShieldAlert, Ban, User, MessageCircle } from 'lucide-react';
+import { ArrowLeft, MoreVertical, ShieldAlert, Ban, User } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import { useAuth } from '../../context/AuthContext';
 import { Avatar } from '../common/Avatar';
@@ -85,31 +85,81 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
           alignItems: 'center',
           justifyContent: 'center',
           height: '100%',
-          padding: '32px',
+          padding: '40px 24px',
           textAlign: 'center',
-          color: 'var(--text-muted)',
+          color: 'var(--text-secondary)',
+          background: 'radial-gradient(ellipse at center, rgba(99, 102, 241, 0.05) 0%, transparent 70%)',
         }}
       >
         <div
           style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            background: 'var(--bg-card)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '20px',
+            position: 'relative',
+            marginBottom: '24px',
           }}
         >
-          <MessageCircle size={40} color="var(--color-primary)" />
+          <div
+            style={{
+              position: 'absolute',
+              inset: '-10px',
+              borderRadius: '28px',
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.4), rgba(236,72,153,0.3))',
+              filter: 'blur(16px)',
+              zIndex: 0,
+            }}
+          />
+          <img
+            src="/chatbase.png"
+            alt="ChatBase Logo"
+            style={{
+              width: '84px',
+              height: '84px',
+              borderRadius: '22px',
+              boxShadow: 'var(--shadow-lg)',
+              position: 'relative',
+              zIndex: 1,
+            }}
+          />
         </div>
-        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
-          Select a Conversation
-        </h3>
-        <p style={{ fontSize: '0.9rem', maxWidth: '320px', lineHeight: 1.5 }}>
-          Pick a conversation from the left or discover people nearby to start exchanging messages, voice notes, and videos.
+
+        <h2
+          style={{
+            fontSize: '1.5rem',
+            fontWeight: 800,
+            color: 'var(--text-primary)',
+            marginBottom: '8px',
+            fontFamily: 'var(--font-brand)',
+          }}
+        >
+          ChatBase for Web
+        </h2>
+
+        <p style={{ fontSize: '0.94rem', maxWidth: '420px', lineHeight: 1.6, marginBottom: '24px' }}>
+          Left panel se koi bhi chat select karein ya <strong>"Discover Nearby"</strong> aur <strong>"Find by ID"</strong> se naye friends ke saath messaging shuru karein.
         </p>
+
+        {/* Feature Pills */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center', maxWidth: '480px' }}>
+          <div style={{ padding: '8px 14px', borderRadius: '20px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>🆔</span>
+            <span>Unique ID Instant Search</span>
+          </div>
+          <div style={{ padding: '8px 14px', borderRadius: '20px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>⚡</span>
+            <span>Web & Mobile Realtime Sync</span>
+          </div>
+          <div style={{ padding: '8px 14px', borderRadius: '20px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>🎙️</span>
+            <span>48kbps Studio Voice Notes</span>
+          </div>
+          <div style={{ padding: '8px 14px', borderRadius: '20px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>🕒</span>
+            <span>30-Day Auto Cleanup</span>
+          </div>
+        </div>
+
+        <div style={{ marginTop: '36px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+          Made by <strong>HarshGuruJi</strong> • <a href="https://www.webguruji.online" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>www.webguruji.online</a>
+        </div>
       </div>
     );
   }
