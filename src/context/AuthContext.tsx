@@ -105,17 +105,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (fallbackData?.email) {
             emailToUse = fallbackData.email;
           } else {
-            return { error: 'Account not found with this User ID or Username.' };
+            return { error: 'Account not found. Please check your ChatBase ID or Username.' };
           }
         }
+      } else {
+        emailToUse = emailToUse.toLowerCase();
       }
 
       const { error } = await supabase.auth.signInWithPassword({
-        email: emailToUse,
+        email: emailToUse.toLowerCase(),
         password,
       });
 
       if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          return { error: 'Galat Password ya Login ID. Kripya apna sahi password dalein.' };
+        }
+        if (error.message.includes('Email not confirmed')) {
+          return { error: 'Account verify nahi hua tha. Kripya ek baar aur login button dabayein.' };
+        }
         return { error: error.message };
       }
 
