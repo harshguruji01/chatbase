@@ -5,6 +5,7 @@ import { OutlinedButton } from '../common/OutlinedButton';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../common/Toast';
+import { compressImage } from '../../lib/compression';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -24,15 +25,17 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      if (file.size > 5 * 1024 * 1024) {
-        showToast('Avatar must be under 5 MB.', 'error');
-        return;
+      try {
+        const compressed = await compressImage(file, { maxWidth: 800, maxHeight: 800, quality: 0.85 });
+        setAvatarFile(compressed);
+        setAvatarPreview(URL.createObjectURL(compressed));
+      } catch {
+        setAvatarFile(file);
+        setAvatarPreview(URL.createObjectURL(file));
       }
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
     }
   };
 

@@ -30,7 +30,10 @@ export class VoiceRecorder {
         }
       }
 
-      const options = mimeType ? { mimeType } : undefined;
+      const options: MediaRecorderOptions = {
+        audioBitsPerSecond: 48000, // 48 kbps: crisp studio voice clarity, ultra-compact file size
+        ...(mimeType ? { mimeType } : {}),
+      };
       this.mediaRecorder = new MediaRecorder(this.stream, options);
 
       this.mediaRecorder.ondataavailable = (event) => {

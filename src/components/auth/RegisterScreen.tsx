@@ -5,6 +5,8 @@ import { OutlinedButton } from '../common/OutlinedButton';
 import { BrandHeader } from '../common/BrandHeader';
 import { useToast } from '../common/Toast';
 
+import { compressImage } from '../../lib/compression';
+
 interface RegisterScreenProps {
   onGoToLogin: () => void;
 }
@@ -26,15 +28,18 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onGoToLogin }) =
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      if (file.size > 5 * 1024 * 1024) {
-        showToast('Profile image must be less than 5 MB.', 'error');
-        return;
+      try {
+        // Smart compression keeping retina sharpness
+        const compressed = await compressImage(file, { maxWidth: 800, maxHeight: 800, quality: 0.85 });
+        setAvatarFile(compressed);
+        setAvatarPreview(URL.createObjectURL(compressed));
+      } catch {
+        setAvatarFile(file);
+        setAvatarPreview(URL.createObjectURL(file));
       }
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
     }
   };
 
