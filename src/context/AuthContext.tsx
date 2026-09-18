@@ -173,26 +173,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: {
-            username: cleanUsername,
-            display_name: displayName.trim(),
-            avatar_url: avatarUrl,
-            phone: phone?.trim() || null,
-          },
-        },
+      // Call register_user RPC: eliminates email confirmation rate limits and instantly creates/confirms account
+      const { data: regResult, error: regError } = await supabase.rpc('register_user', {
+        p_email: email.trim(),
+        p_password: password,
+        p_username: cleanUsername,
+        p_display_name: displayName.trim(),
+        p_phone: phone?.trim() || null,
+        p_avatar_url: avatarUrl || null,
       });
 
-      if (signUpError) {
-        return { error: signUpError.message };
+      if (regError) {
+        return { error: regError.message || 'Registration failed.' };
       }
 
-      if (authData.user) {
-        // Ensure profile is refreshed
-        await fetchProfile(authData.user.id);
+      if (regResult && typeof regResult === 'object' && 'error' in regResult) {
+        return { error: (regResult as { error: string }).error };
+      }
+
+      // Auto sign-in the newly registered user immediately
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (signInError) {
+        return { error: signInError.message };
+      }
+
+      if (regResult && typeof regResult === 'object' && 'user_id' in regResult) {
+        await fetchProfile((regResult as { user_id: string }).user_id);
       }
 
       return {};
