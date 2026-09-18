@@ -22,9 +22,9 @@ export const BrandHeader: React.FC<BrandHeaderProps> = ({ size = 'md', showSubti
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <img
-          src="/logo.svg"
+          src="/chatbase.png"
           alt="ChatBase Logo"
-          style={{ width: logoSizes[size], height: logoSizes[size] }}
+          style={{ width: logoSizes[size], height: logoSizes[size], borderRadius: size === 'lg' ? '16px' : '10px', objectFit: 'contain' }}
         />
         <span
           style={{

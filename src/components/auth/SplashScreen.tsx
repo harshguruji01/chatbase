@@ -46,9 +46,9 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
       >
         <div className="logo-glow-anim">
           <img
-            src="/logo.svg"
+            src="/chatbase.png"
             alt="ChatBase"
-            style={{ width: '96px', height: '96px' }}
+            style={{ width: '108px', height: '108px', borderRadius: '24px', objectFit: 'contain' }}
           />
         </div>
 

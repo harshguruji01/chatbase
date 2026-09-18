@@ -8,6 +8,7 @@ import { LoginScreen } from './components/auth/LoginScreen';
 import { RegisterScreen } from './components/auth/RegisterScreen';
 import { MainLayout } from './components/layout/MainLayout';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { LiveUpdateSync } from './components/common/LiveUpdateSync';
 
 const ChatBaseApp: React.FC = () => {
   const { user, isLoading, isAdmin } = useAuth();
@@ -64,6 +65,7 @@ export default function App() {
       <ToastProvider>
         <AuthProvider>
           <ChatProvider>
+            <LiveUpdateSync />
             <ChatBaseApp />
           </ChatProvider>
         </AuthProvider>
