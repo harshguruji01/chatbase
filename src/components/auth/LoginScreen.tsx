@@ -5,6 +5,7 @@ import { OutlinedButton } from '../common/OutlinedButton';
 import { BrandHeader } from '../common/BrandHeader';
 import { Modal } from '../common/Modal';
 import { useToast } from '../common/Toast';
+import brandLogo from '../../assets/chatbase.png';
 
 interface LoginScreenProps {
   onGoToRegister: () => void;
@@ -99,13 +100,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onGoToRegister }) => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '28px' }}>
               <img
-                src="/chatbase.png"
+                src={brandLogo || './chatbase.png'}
                 alt="ChatBase Logo"
                 style={{
                   width: '52px',
                   height: '52px',
                   borderRadius: '14px',
                   boxShadow: '0 4px 20px rgba(99, 102, 241, 0.4)',
+                  objectFit: 'contain',
                 }}
               />
               <div>

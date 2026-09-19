@@ -6,6 +6,7 @@ import { OutlinedButton } from '../common/OutlinedButton';
 import { BrandHeader } from '../common/BrandHeader';
 import { useToast } from '../common/Toast';
 import { compressImage } from '../../lib/compression';
+import brandLogo from '../../assets/chatbase.png';
 
 interface RegisterScreenProps {
   onGoToLogin: () => void;
@@ -161,13 +162,14 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onGoToLogin }) =
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '28px' }}>
               <img
-                src="/chatbase.png"
+                src={brandLogo || './chatbase.png'}
                 alt="ChatBase Logo"
                 style={{
                   width: '52px',
                   height: '52px',
                   borderRadius: '14px',
                   boxShadow: '0 4px 20px rgba(99, 102, 241, 0.4)',
+                  objectFit: 'contain',
                 }}
               />
               <div>

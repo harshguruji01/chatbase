@@ -58,7 +58,15 @@ if (jsContent) {
 fs.writeFileSync(rootIndex, htmlContent, 'utf8');
 console.log('✓ Successfully wrote inlined full UI, CSS & JS into root index.html');
 
-// 6. Write .nojekyll for GitHub Pages so no files are blocked
+// 6. Ensure root chatbase.png exists for root index.html and favicon
+const publicLogo = path.resolve(rootDir, 'public', 'chatbase.png');
+const rootLogo = path.resolve(rootDir, 'chatbase.png');
+if (fs.existsSync(publicLogo)) {
+  fs.copyFileSync(publicLogo, rootLogo);
+  console.log('✓ Ensured chatbase.png exists in project root');
+}
+
+// 7. Write .nojekyll for GitHub Pages so no files are blocked
 const noJekyllPath = path.resolve(rootDir, '.nojekyll');
 fs.writeFileSync(noJekyllPath, '', 'utf8');
 console.log('✓ Ensured .nojekyll exists in root');

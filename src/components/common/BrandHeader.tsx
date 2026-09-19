@@ -1,4 +1,5 @@
 import React from 'react';
+import brandLogo from '../../assets/chatbase.png';
 
 interface BrandHeaderProps {
   size?: 'sm' | 'md' | 'lg';
@@ -22,7 +23,7 @@ export const BrandHeader: React.FC<BrandHeaderProps> = ({ size = 'md', showSubti
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <img
-          src="/chatbase.png"
+          src={brandLogo || './chatbase.png'}
           alt="ChatBase Logo"
           style={{ width: logoSizes[size], height: logoSizes[size], borderRadius: size === 'lg' ? '16px' : '10px', objectFit: 'contain' }}
         />

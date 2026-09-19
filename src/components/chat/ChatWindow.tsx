@@ -10,6 +10,7 @@ import { Modal } from '../common/Modal';
 import { useToast } from '../common/Toast';
 import { formatRelativeTime } from '../../lib/utils';
 import { supabase } from '../../lib/supabase';
+import brandLogo from '../../assets/chatbase.png';
 
 interface ChatWindowProps {
   onBack?: () => void;
@@ -108,7 +109,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
             }}
           />
           <img
-            src="/chatbase.png"
+            src={brandLogo || './chatbase.png'}
             alt="ChatBase Logo"
             style={{
               width: '84px',
@@ -117,6 +118,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
               boxShadow: 'var(--shadow-lg)',
               position: 'relative',
               zIndex: 1,
+              objectFit: 'contain',
             }}
           />
         </div>

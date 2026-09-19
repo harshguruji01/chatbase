@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import brandLogo from '../../assets/chatbase.png';
 
 interface SplashScreenProps {
   onComplete: () => void;
@@ -46,7 +47,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
       >
         <div className="logo-glow-anim">
           <img
-            src="/chatbase.png"
+            src={brandLogo || './chatbase.png'}
             alt="ChatBase"
             style={{ width: '108px', height: '108px', borderRadius: '24px', objectFit: 'contain' }}
           />
