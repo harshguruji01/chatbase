@@ -242,13 +242,14 @@
 
 /* Bottom Navigation (Mobile & Tablet) */
 .bottom-nav {
-  height: var(--bottom-nav-height);
+  height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border-color);
   background: var(--bg-card);
   display: flex;
   align-items: center;
   justify-content: space-around;
   padding: 0 8px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   flex-shrink: 0;
   z-index: 10;
 }
@@ -483,6 +484,7 @@
 /* Instagram Composer Bar */
 .ig-composer-container {
   padding: 10px 14px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
   background: var(--bg-card);
   border-top: 1px solid var(--border-color);
   display: flex;

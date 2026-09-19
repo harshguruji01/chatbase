@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase';
 import type { Profile } from '../../types';
 import { useToast } from '../common/Toast';
 import { useLanguage } from '../../context/LanguageContext';
+import { useBackButton } from '../../lib/useBackButton';
 
 interface UserSearchProps {
   onStartChat: () => void;
@@ -24,6 +25,18 @@ export const UserSearch: React.FC<UserSearchProps> = ({ onStartChat, onViewProfi
   const [results, setResults] = useState<(Profile & { is_following?: boolean })[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+
+  // If user has entered a search query, back button clears the query first
+  useBackButton(
+    () => {
+      setQuery('');
+      setResults([]);
+      setHasSearched(false);
+      return true;
+    },
+    query.trim().length > 0,
+    18
+  );
 
   const performSearch = useCallback(
     async (searchTerm: string) => {

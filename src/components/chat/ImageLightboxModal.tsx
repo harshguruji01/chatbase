@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { X, Download } from 'lucide-react';
+import { useBackButton } from '../../lib/useBackButton';
 
 interface ImageLightboxModalProps {
   isOpen: boolean;
@@ -18,6 +19,9 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
   timestamp,
   onClose,
 }) => {
+  // Automatically intercept hardware / browser back button to close lightbox
+  useBackButton(onClose, isOpen, 110);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();

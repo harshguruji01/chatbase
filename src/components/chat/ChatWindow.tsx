@@ -10,6 +10,7 @@ import { Modal } from '../common/Modal';
 import { useToast } from '../common/Toast';
 import { formatRelativeTime } from '../../lib/utils';
 import { supabase } from '../../lib/supabase';
+import { useBackButton } from '../../lib/useBackButton';
 import brandLogo from '../../assets/chatbase.png';
 
 interface ChatWindowProps {
@@ -19,7 +20,7 @@ interface ChatWindowProps {
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile }) => {
   const { user } = useAuth();
-  const { activeConversation, messages, deleteMessage, blockUser, isUserBlocked } = useChat();
+  const { activeConversation, messages, deleteMessage, blockUser, isUserBlocked, isOtherTyping } = useChat();
   const { showToast } = useToast();
 
   const [showMenu, setShowMenu] = useState(false);
@@ -28,6 +29,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
   const [reportReason, setReportReason] = useState('spam');
   const [reportDetails, setReportDetails] = useState('');
   const [isReporting, setIsReporting] = useState(false);
+
+  // Hardware/Browser Back Handlers:
+  // 1. Close menu if open (priority 50)
+  useBackButton(() => setShowMenu(false), showMenu, 50);
+  // 2. Go back from active chat to conversation list (priority 20)
+  useBackButton(() => {
+    if (onBack) {
+      onBack();
+      return true;
+    }
+  }, Boolean(onBack), 20);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -171,13 +183,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
       {/* Chat Header */}
       <div
         style={{
-          height: 'var(--header-height)',
+          height: 'calc(var(--header-height) + env(safe-area-inset-top, 0px))',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
           borderBottom: '1px solid var(--border-color)',
           background: 'var(--bg-card)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 16px',
+          paddingLeft: '16px',
+          paddingRight: '16px',
           flexShrink: 0,
         }}
       >
@@ -220,9 +234,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
                   {otherUser.user_code}
                 </span>
               </div>
-              <span style={{ fontSize: '0.78rem', color: otherUser.show_online_status ? 'var(--color-success)' : 'var(--text-muted)' }}>
-                {otherUser.show_online_status ? 'Online' : `Last active ${formatRelativeTime(otherUser.last_seen)}`}
-              </span>
+              {isOtherTyping ? (
+                <span
+                  style={{
+                    fontSize: '0.78rem',
+                    color: 'var(--color-primary)',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  typing...
+                </span>
+              ) : (
+                <span style={{ fontSize: '0.78rem', color: otherUser.show_online_status ? 'var(--color-success)' : 'var(--text-muted)' }}>
+                  {otherUser.show_online_status ? 'Online' : `Last active ${formatRelativeTime(otherUser.last_seen)}`}
+                </span>
+              )}
             </div>
           </div>
         </div>

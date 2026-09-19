@@ -36,6 +36,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab 
       <div
         style={{
           padding: '14px 16px',
+          paddingTop: 'calc(14px + env(safe-area-inset-top, 0px))',
           borderBottom: '1px solid var(--border-color)',
           background: 'var(--bg-card)',
           display: 'flex',

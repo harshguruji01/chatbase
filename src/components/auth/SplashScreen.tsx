@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { SplashScreen as CapSplashScreen } from '@capacitor/splash-screen';
+import { Capacitor } from '@capacitor/core';
 import brandLogo from '../../assets/chatbase.png';
 
 interface SplashScreenProps {
@@ -9,16 +11,21 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    // Hide native splash screen once React splash mounts
+    if (Capacitor.isNativePlatform()) {
+      CapSplashScreen.hide({ fadeOutDuration: 300 }).catch(() => {});
+    }
+
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
           clearInterval(interval);
-          setTimeout(onComplete, 400);
+          setTimeout(onComplete, 350);
           return 100;
         }
         return prev + 15;
       });
-    }, 120);
+    }, 100);
 
     return () => clearInterval(interval);
   }, [onComplete]);

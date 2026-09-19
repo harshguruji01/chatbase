@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import type { Conversation, Message, MessageType, Profile } from '../types';
+import { triggerHaptics } from '../lib/utils';
 
 interface ChatContextType {
   conversations: Conversation[];
@@ -10,6 +11,8 @@ interface ChatContextType {
   isLoadingConversations: boolean;
   isLoadingMessages: boolean;
   uploadProgress: number | null;
+  isOtherTyping: boolean;
+  broadcastTyping: (isTyping: boolean) => void;
   selectConversation: (conversation: Conversation | null) => void;
   startChatWithUser: (targetUser: Profile) => Promise<{ conversationId?: string; error?: string }>;
   sendMessage: (options: {
@@ -38,6 +41,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoadingMessages, setIsLoadingMessages] = useState<boolean>(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [blockedUserIds, setBlockedUserIds] = useState<string[]>([]);
+  const [isOtherTyping, setIsOtherTyping] = useState<boolean>(false);
+
+  const activeChannelRef = useRef<any>(null);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch list of blocked users
   const fetchBlockedUsers = useCallback(async () => {
@@ -131,12 +138,20 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
         setMessages(visibleMessages);
 
-        // Mark unread as 0
+        // Mark unread as 0 in membership
         await supabase
           .from('conversation_members')
           .update({ unread_count: 0, last_read_at: new Date().toISOString() })
           .eq('conversation_id', convId)
           .eq('user_id', user.id);
+
+        // Live Read Receipts: Mark incoming messages as read in database
+        await supabase
+          .from('messages')
+          .update({ status: 'read' })
+          .eq('conversation_id', convId)
+          .neq('sender_id', user.id)
+          .in('status', ['sent', 'delivered']);
       }
     } catch (err) {
       console.error('Error fetching messages:', err);
@@ -162,10 +177,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       fetchMessages(activeConversation.id);
     } else {
       setMessages([]);
+      setIsOtherTyping(false);
     }
   }, [activeConversation, fetchMessages]);
 
-  // Real-time listener for incoming messages
+  // Real-time listener for incoming messages, updates, and typing broadcast
   useEffect(() => {
     if (!user) return;
 
@@ -199,6 +215,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Mark read if it's not sent by current user
             if (newMsg.sender_id !== user.id) {
               await supabase
+                .from('messages')
+                .update({ status: 'read' })
+                .eq('id', newMsg.id);
+
+              await supabase
                 .from('conversation_members')
                 .update({ unread_count: 0, last_read_at: new Date().toISOString() })
                 .eq('conversation_id', activeConversation.id)
@@ -222,15 +243,55 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       )
+      .on('broadcast', { event: 'typing' }, ({ payload }) => {
+        if (
+          activeConversation &&
+          payload &&
+          payload.conversation_id === activeConversation.id &&
+          payload.user_id !== user.id
+        ) {
+          setIsOtherTyping(Boolean(payload.is_typing));
+          if (payload.is_typing) {
+            if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+            typingTimerRef.current = setTimeout(() => {
+              setIsOtherTyping(false);
+            }, 3500);
+          }
+        }
+      })
       .subscribe();
+
+    activeChannelRef.current = channel;
 
     return () => {
       supabase.removeChannel(channel);
+      activeChannelRef.current = null;
     };
   }, [user, activeConversation, fetchConversations]);
 
+  const broadcastTyping = useCallback(
+    (isTyping: boolean) => {
+      if (!user || !activeConversation || !activeChannelRef.current) return;
+      try {
+        activeChannelRef.current.send({
+          type: 'broadcast',
+          event: 'typing',
+          payload: {
+            conversation_id: activeConversation.id,
+            user_id: user.id,
+            is_typing: isTyping,
+          },
+        });
+      } catch (err) {
+        console.warn('Failed to broadcast typing status:', err);
+      }
+    },
+    [user, activeConversation]
+  );
+
   const selectConversation = (conversation: Conversation | null) => {
     setActiveConversation(conversation);
+    setIsOtherTyping(false);
   };
 
   // Find or create a conversation with a user
@@ -357,6 +418,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           else if (mediaFile.type?.includes('webp')) ext = 'webp';
           else if (mediaFile.type?.includes('gif')) ext = 'gif';
           else ext = 'jpg';
+        } else if (type === 'voice') {
+          if (mediaFile.type?.includes('mp4') || mediaFile.type?.includes('aac') || mediaFile.type?.includes('m4a')) {
+            ext = 'm4a';
+          } else if (mediaFile.type?.includes('ogg')) {
+            ext = 'ogg';
+          } else {
+            ext = 'webm';
+          }
         }
 
         const filePath = `${user.id}/${activeConversation.id}/${Date.now()}.${ext}`;
@@ -433,6 +502,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (newMsg) {
         setMessages((prev) => [...prev, newMsg as Message]);
+        triggerHaptics(20);
       }
 
       return {};
@@ -475,6 +545,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setMessages((prev) => prev.filter((m) => m.id !== messageId));
       }
 
+      triggerHaptics(15);
       return {};
     } catch (err: any) {
       return { error: err.message };
@@ -533,6 +604,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setMessages((prev) =>
       prev.map((m) => (m.id === messageId ? { ...m, reactions: currentReactions } : m))
     );
+    triggerHaptics(12);
 
     try {
       const { error } = await supabase
@@ -566,6 +638,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoadingConversations,
         isLoadingMessages,
         uploadProgress,
+        isOtherTyping,
+        broadcastTyping,
         selectConversation,
         startChatWithUser,
         sendMessage,

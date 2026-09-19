@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Sparkles, RefreshCw, X } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { OutlinedButton } from './OutlinedButton';
 
 export const LiveUpdateSync: React.FC = () => {
@@ -8,6 +9,9 @@ export const LiveUpdateSync: React.FC = () => {
   const [dismissed, setDismissed] = useState(false);
 
   const checkVersion = async () => {
+    // Skip web update checks on native Capacitor app
+    if (Capacitor.isNativePlatform()) return;
+
     try {
       const res = await fetch(`/version.json?t=${Date.now()}`, {
         cache: 'no-store',
@@ -61,7 +65,7 @@ export const LiveUpdateSync: React.FC = () => {
       });
   };
 
-  if (!hasUpdate || dismissed) return null;
+  if (Capacitor.isNativePlatform() || !hasUpdate || dismissed) return null;
 
   return (
     <div

@@ -82,3 +82,14 @@ export function debounce<T extends (...args: any[]) => any>(
     timeout = setTimeout(() => func(...args), wait);
   };
 }
+
+export function triggerHaptics(duration: number = 15): void {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    try {
+      navigator.vibrate(duration);
+    } catch {
+      // ignore
+    }
+  }
+}
+

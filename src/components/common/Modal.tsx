@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { OutlinedButton } from './OutlinedButton';
+import { useBackButton } from '../../lib/useBackButton';
 
 interface ModalProps {
   isOpen: boolean;
@@ -17,6 +18,9 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   maxWidth = '460px',
 }) => {
+  // Automatically intercept hardware / browser back button to close modal
+  useBackButton(onClose, isOpen, 100);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {

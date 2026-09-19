@@ -14,9 +14,10 @@ import { InlineVoiceRecorder } from './InlineVoiceRecorder';
 import { ImagePreviewModal } from './ImagePreviewModal';
 import { VideoUploaderModal } from './VideoUploaderModal';
 import { useChat } from '../../context/ChatContext';
+import { useBackButton } from '../../lib/useBackButton';
 
 export const Composer: React.FC = () => {
-  const { sendMessage, uploadProgress } = useChat();
+  const { sendMessage, uploadProgress, broadcastTyping } = useChat();
 
   const [text, setText] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -29,8 +30,16 @@ export const Composer: React.FC = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Auto-resize textarea as text grows
+  // Hardware/Browser Back Handlers for all child overlays in composer
+  useBackButton(() => setShowActionsMenu(false), showActionsMenu, 60);
+  useBackButton(() => setShowEmojiPicker(false), showEmojiPicker, 60);
+  useBackButton(() => setIsRecordingInline(false), isRecordingInline, 70);
+  useBackButton(() => setStagedImage(null), !!stagedImage, 80);
+  useBackButton(() => setShowVideoModal(false), showVideoModal, 80);
+
+  // Auto-resize textarea as text grows & broadcast typing
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -38,11 +47,28 @@ export const Composer: React.FC = () => {
     }
   }, [text]);
 
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newText = e.target.value;
+    setText(newText);
+
+    // Broadcast typing indicator
+    if (newText.trim().length > 0) {
+      broadcastTyping(true);
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = setTimeout(() => {
+        broadcastTyping(false);
+      }, 2000);
+    } else {
+      broadcastTyping(false);
+    }
+  };
+
   const handleSendText = async () => {
     if (!text.trim() || isSending) return;
     const content = text.trim();
     setText('');
     setIsSending(true);
+    broadcastTyping(false);
 
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -58,6 +84,7 @@ export const Composer: React.FC = () => {
   const handleSendHeart = async () => {
     if (isSending) return;
     setIsSending(true);
+    broadcastTyping(false);
     await sendMessage({
       type: 'like',
       content: '❤️',
@@ -264,7 +291,7 @@ export const Composer: React.FC = () => {
             <textarea
               ref={textareaRef}
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={handleTextChange}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
               placeholder="Message..."

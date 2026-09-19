@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import type { TabType } from '../../types';
 import { useChat } from '../../context/ChatContext';
+import { useToast } from '../common/Toast';
+import { backNavigation } from '../../lib/backNavigation';
+import { useBackButton } from '../../lib/useBackButton';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
 import { HomeFeed } from '../home/HomeFeed';
@@ -13,11 +16,31 @@ import { SettingsModal } from '../settings/SettingsModal';
 
 export const MainLayout: React.FC = () => {
   const { activeConversation, selectConversation } = useChat();
+  const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<TabType>('chat');
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth > 900);
+
+  // Initialize centralized hardware & browser back button handling
+  useEffect(() => {
+    backNavigation.init({ showToast });
+  }, [showToast]);
+
+  // Back handler for closing modals
+  useBackButton(() => setShowLocationModal(false), showLocationModal, 90);
+  useBackButton(() => setIsSettingsOpen(false), isSettingsOpen, 90);
+
+  // Back handler for secondary tabs: return to 'chat' tab (priority 15)
+  useBackButton(
+    () => {
+      setActiveTab('chat');
+      return true;
+    },
+    activeTab !== 'chat',
+    15
+  );
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth > 900);
