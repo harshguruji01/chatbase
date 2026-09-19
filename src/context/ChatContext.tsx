@@ -19,6 +19,7 @@ interface ChatContextType {
     duration?: number;
   }) => Promise<{ error?: string }>;
   deleteMessage: (messageId: string, forEveryone: boolean) => Promise<{ error?: string }>;
+  toggleReaction: (messageId: string, emoji: string) => Promise<{ error?: string }>;
   refreshConversations: () => Promise<void>;
   blockUser: (targetUserId: string, reason?: string) => Promise<{ error?: string }>;
   unblockUser: (targetUserId: string) => Promise<{ error?: string }>;
@@ -337,9 +338,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (mediaFile) {
         mediaSizeBytes = mediaFile.size;
-        // Server & Client limit check for video: 10 MB
-        if (type === 'video' && mediaFile.size > 10 * 1024 * 1024) {
-          return { error: 'Video file size must be less than 10 MB.' };
+        // Server & Client limit check for video/image: 10 MB
+        if ((type === 'video' || type === 'image') && mediaFile.size > 10 * 1024 * 1024) {
+          return { error: `${type === 'image' ? 'Image' : 'Video'} file size must be less than 10 MB.` };
         }
 
         // Voice duration limit: 60s
@@ -348,7 +349,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         setUploadProgress(10);
-        const ext = type === 'video' ? 'mp4' : 'webm';
+        let ext = 'webm';
+        if (type === 'video') {
+          ext = 'mp4';
+        } else if (type === 'image') {
+          if (mediaFile.type?.includes('png')) ext = 'png';
+          else if (mediaFile.type?.includes('webp')) ext = 'webp';
+          else if (mediaFile.type?.includes('gif')) ext = 'gif';
+          else ext = 'jpg';
+        }
+
         const filePath = `${user.id}/${activeConversation.id}/${Date.now()}.${ext}`;
 
         const { data: uploadData, error: uploadErr } = await supabase.storage
@@ -375,8 +385,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
       let summaryText = content;
-      if (type === 'voice') summaryText = '🎤 Voice message';
-      if (type === 'video') summaryText = '📹 Video message';
+      if (type === 'voice') summaryText = '🎤 Voice note';
+      else if (type === 'video') summaryText = '📹 Video message';
+      else if (type === 'image') summaryText = content.trim() ? `📷 ${content.trim()}` : '📷 Photo';
+      else if (type === 'like') summaryText = '❤️';
 
       const { data: newMsg, error: insertErr } = await supabase
         .from('messages')
@@ -505,6 +517,42 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const toggleReaction = async (messageId: string, emoji: string) => {
+    if (!user) return { error: 'Not authenticated' };
+    const targetMsg = messages.find((m) => m.id === messageId);
+    if (!targetMsg) return { error: 'Message not found' };
+
+    const currentReactions: Record<string, string> = { ...(targetMsg.reactions || {}) };
+    if (currentReactions[user.id] === emoji) {
+      delete currentReactions[user.id];
+    } else {
+      currentReactions[user.id] = emoji;
+    }
+
+    // Optimistic update
+    setMessages((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, reactions: currentReactions } : m))
+    );
+
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ reactions: currentReactions })
+        .eq('id', messageId);
+
+      if (error) {
+        // Revert on failure
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, reactions: targetMsg.reactions } : m))
+        );
+        return { error: error.message };
+      }
+      return {};
+    } catch (err: any) {
+      return { error: err.message };
+    }
+  };
+
   const isUserBlocked = (targetUserId: string) => {
     return blockedUserIds.includes(targetUserId);
   };
@@ -522,6 +570,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         startChatWithUser,
         sendMessage,
         deleteMessage,
+        toggleReaction,
         refreshConversations: fetchConversations,
         blockUser,
         unblockUser,

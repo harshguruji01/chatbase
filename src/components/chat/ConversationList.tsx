@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Search, MessageSquare, Compass, UserPlus } from 'lucide-react';
+import { Search, MessageSquare, UserPlus } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Avatar } from '../common/Avatar';
 import { formatRelativeTime } from '../../lib/utils';
 import type { TabType } from '../../types';
+import { BrandHeader } from '../common/BrandHeader';
 
 interface ConversationListProps {
   onSelectTab: (tab: TabType) => void;
@@ -11,6 +13,7 @@ interface ConversationListProps {
 
 export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab }) => {
   const { conversations, activeConversation, selectConversation, isLoadingConversations } = useChat();
+  const { t } = useLanguage();
   const [searchFilter, setSearchFilter] = useState('');
 
   const filteredConversations = conversations.filter((c) => {
@@ -25,65 +28,50 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab 
     );
   });
 
+  const totalUnread = conversations.reduce((acc, c) => acc + (c.unread_count || 0), 0);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Search & Quick Action Bar */}
-      <div style={{ padding: '16px', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', background: 'var(--bg-app)' }}>
+      {/* Top Header */}
+      <div
+        style={{
+          padding: '14px 16px',
+          borderBottom: '1px solid var(--border-color)',
+          background: 'var(--bg-card)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <BrandHeader size="sm" showSubtitle={false} />
+          {totalUnread > 0 && (
+            <span
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                background: 'var(--color-primary)',
+                color: '#fff',
+                padding: '2px 8px',
+                borderRadius: 'var(--radius-full)',
+              }}
+            >
+              {totalUnread} new
+            </span>
+          )}
+        </div>
+
+        {/* Search input */}
         <div className="input-wrapper">
           <Search size={16} className="input-icon-left" />
           <input
             type="text"
             className="input-field has-left-icon"
-            placeholder="Search chats or messages..."
+            placeholder={t('search_placeholder')}
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
             style={{ borderRadius: 'var(--radius-full)', padding: '10px 16px 10px 38px' }}
           />
-        </div>
-
-        {/* Quick Discovery Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-          <button
-            onClick={() => onSelectTab('nearby')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 12px',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-color)',
-              background: 'var(--bg-input)',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              transition: 'background var(--transition-fast)',
-            }}
-          >
-            <Compass size={16} color="var(--color-primary)" />
-            <span>Nearby People</span>
-          </button>
-
-          <button
-            onClick={() => onSelectTab('search')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 12px',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-color)',
-              background: 'var(--bg-input)',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              transition: 'background var(--transition-fast)',
-            }}
-          >
-            <UserPlus size={16} color="var(--color-pink)" />
-            <span>Find by ID</span>
-          </button>
         </div>
       </div>
 
@@ -93,7 +81,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab 
           <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {[1, 2, 3, 4].map((i) => (
               <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <div className="skeleton" style={{ width: '46px', height: '46px', borderRadius: '50%' }} />
+                <div className="skeleton" style={{ width: '48px', height: '48px', borderRadius: '50%' }} />
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <div className="skeleton" style={{ width: '50%', height: '14px' }} />
                   <div className="skeleton" style={{ width: '80%', height: '12px' }} />
@@ -129,77 +117,101 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab 
               <MessageSquare size={28} />
             </div>
             <h4 style={{ color: 'var(--text-primary)', fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }}>
-              No Conversations Yet
+              {t('no_chats_yet')}
             </h4>
-            <p style={{ fontSize: '0.85rem', maxWidth: '240px', lineHeight: 1.4 }}>
-              Discover nearby users or search by unique User ID to start chatting!
+            <p style={{ fontSize: '0.85rem', maxWidth: '260px', lineHeight: 1.4, marginBottom: '16px' }}>
+              {t('start_chat_desc')}
             </p>
+            <button
+              onClick={() => onSelectTab('search')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '9px 18px',
+                borderRadius: 'var(--radius-full)',
+                background: 'var(--color-primary)',
+                color: '#fff',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <UserPlus size={16} />
+              <span>{t('find_people')}</span>
+            </button>
           </div>
         ) : (
           filteredConversations.map((conv) => {
             const other = conv.other_member;
             const isSelected = activeConversation?.id === conv.id;
+            const unread = conv.unread_count || 0;
 
             return (
               <div
                 key={conv.id}
                 onClick={() => selectConversation(conv)}
+                className={`conversation-item ${isSelected ? 'selected' : ''}`}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '12px',
-                  padding: '12px 16px',
-                  cursor: 'pointer',
+                  gap: '14px',
+                  padding: '14px 16px',
                   borderBottom: '1px solid var(--border-color)',
+                  cursor: 'pointer',
                   background: isSelected ? 'var(--color-primary-light)' : 'transparent',
                   transition: 'background var(--transition-fast)',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSelected) (e.currentTarget.style.background = 'var(--bg-card-hover)');
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSelected) (e.currentTarget.style.background = 'transparent');
                 }}
               >
                 <Avatar
                   src={other?.avatar_url}
                   name={other?.display_name || 'User'}
-                  size="md"
+                  size="lg"
                   isOnline={other?.show_online_status}
                 />
 
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '2px' }}>
-                    <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {other?.display_name || 'ChatBase User'}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                    <span
+                      style={{
+                        fontWeight: unread > 0 ? 700 : 600,
+                        fontSize: '0.98rem',
+                        color: 'var(--text-primary)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {other?.display_name}
                     </span>
+
                     {conv.last_message_at && (
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      <span style={{ fontSize: '0.75rem', color: unread > 0 ? 'var(--color-primary)' : 'var(--text-muted)', flexShrink: 0, fontWeight: unread > 0 ? 700 : 400 }}>
                         {formatRelativeTime(conv.last_message_at)}
                       </span>
                     )}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <p
+                      style={{
+                        fontSize: '0.85rem',
+                        color: unread > 0 ? 'var(--text-primary)' : 'var(--text-muted)',
+                        fontWeight: unread > 0 ? 600 : 400,
+                        margin: 0,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '85%',
+                      }}
+                    >
                       {conv.last_message_text || 'Started a conversation'}
                     </p>
 
-                    {(conv.unread_count || 0) > 0 && (
-                      <span
-                        style={{
-                          background: 'var(--color-primary)',
-                          color: '#FFFFFF',
-                          borderRadius: 'var(--radius-full)',
-                          fontSize: '0.7rem',
-                          fontWeight: 700,
-                          padding: '2px 7px',
-                          minWidth: '18px',
-                          textAlign: 'center',
-                          marginLeft: '6px',
-                        }}
-                      >
-                        {conv.unread_count}
+                    {unread > 0 && (
+                      <span className="bottom-nav-badge" style={{ position: 'static' }}>
+                        {unread}
                       </span>
                     )}
                   </div>

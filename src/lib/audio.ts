@@ -4,8 +4,13 @@ export class VoiceRecorder {
   private stream: MediaStream | null = null;
   private startTime: number = 0;
   private timerInterval: ReturnType<typeof setInterval> | null = null;
+  private audioContext: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
+  private animFrameId: number | null = null;
+
   public onTick?: (seconds: number) => void;
   public onMaxDurationReached?: () => void;
+  public onAudioLevel?: (level: number) => void;
 
   async start(): Promise<void> {
     this.audioChunks = [];
@@ -17,6 +22,36 @@ export class VoiceRecorder {
           autoGainControl: true,
         },
       });
+
+      // Setup Web Audio Analyser for dynamic live waveform visualization
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          this.audioContext = new AudioCtx();
+          const source = this.audioContext.createMediaStreamSource(this.stream);
+          this.analyser = this.audioContext.createAnalyser();
+          this.analyser.fftSize = 64;
+          this.analyser.smoothingTimeConstant = 0.5;
+          source.connect(this.analyser);
+
+          const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+          const reportLevel = () => {
+            if (this.analyser && this.onAudioLevel) {
+              this.analyser.getByteFrequencyData(dataArray);
+              let sum = 0;
+              for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+              }
+              const avg = sum / (dataArray.length * 255); // 0 to 1
+              this.onAudioLevel(avg);
+              this.animFrameId = requestAnimationFrame(reportLevel);
+            }
+          };
+          reportLevel();
+        }
+      } catch (audioErr) {
+        console.warn('Live audio analyser not available:', audioErr);
+      }
 
       // Prefer audio/webm or audio/mp4/ogg
       let mimeType = 'audio/webm';
@@ -95,6 +130,15 @@ export class VoiceRecorder {
   }
 
   private cleanup(): void {
+    if (this.animFrameId) {
+      cancelAnimationFrame(this.animFrameId);
+      this.animFrameId = null;
+    }
+    if (this.audioContext) {
+      this.audioContext.close().catch(() => {});
+      this.audioContext = null;
+      this.analyser = null;
+    }
     if (this.timerInterval) {
       clearInterval(this.timerInterval);
       this.timerInterval = null;

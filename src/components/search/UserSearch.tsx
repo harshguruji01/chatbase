@@ -7,6 +7,7 @@ import { OutlinedButton } from '../common/OutlinedButton';
 import { supabase } from '../../lib/supabase';
 import type { Profile } from '../../types';
 import { useToast } from '../common/Toast';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface UserSearchProps {
   onStartChat: () => void;
@@ -17,6 +18,7 @@ export const UserSearch: React.FC<UserSearchProps> = ({ onStartChat, onViewProfi
   const { user } = useAuth();
   const { startChatWithUser, isUserBlocked } = useChat();
   const { showToast } = useToast();
+  const { t, language } = useLanguage();
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<(Profile & { is_following?: boolean })[]>([]);
@@ -137,9 +139,9 @@ export const UserSearch: React.FC<UserSearchProps> = ({ onStartChat, onViewProfi
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Find People</h3>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>{t('find_people')}</h3>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Search by Unique User ID (e.g. HG8X29K4) or @username
+              {language === 'hi' ? 'यूजर ID (जैसे HGP8QZ3J), यूजरनेम या नाम से खोजें' : 'Search by Unique User ID (e.g. HGP8QZ3J), @username or name'}
             </p>
           </div>
         </div>
@@ -149,7 +151,7 @@ export const UserSearch: React.FC<UserSearchProps> = ({ onStartChat, onViewProfi
           <input
             type="text"
             className="input-field has-left-icon"
-            placeholder="Search e.g. HG8X29K4 or @harsh..."
+            placeholder={t('search_placeholder')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             style={{ borderRadius: 'var(--radius-full)', padding: '12px 42px 12px 44px', fontSize: '0.95rem' }}

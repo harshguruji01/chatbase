@@ -15,12 +15,14 @@ import {
   KeyRound,
   Shield,
   Laptop,
+  Languages,
 } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { OutlinedButton } from '../common/OutlinedButton';
 import { Avatar } from '../common/Avatar';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../common/Toast';
 import { supabase } from '../../lib/supabase';
 import { compressImage } from '../../lib/compression';
@@ -45,6 +47,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     signOut,
   } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<'biodata' | 'password' | 'theme' | 'accounts'>(defaultTab);
@@ -508,6 +511,61 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                 </div>
                 {theme === 'system' && <Check size={18} color="var(--color-primary)" />}
+              </div>
+            </div>
+
+            {/* Language Selection */}
+            <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Languages size={18} color="var(--color-primary)" />
+                <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                  {t('language')} / Language
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div
+                  onClick={() => {
+                    setLanguage('en');
+                    showToast('Language set to English', 'info');
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    border: `2px solid ${language === 'en' ? 'var(--color-primary)' : 'var(--border-color)'}`,
+                    background: language === 'en' ? 'var(--color-primary-light)' : 'var(--bg-input)',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.88rem',
+                  }}
+                >
+                  <span>English</span>
+                  {language === 'en' && <Check size={16} color="var(--color-primary)" />}
+                </div>
+
+                <div
+                  onClick={() => {
+                    setLanguage('hi');
+                    showToast('भाषा हिंदी में सेट हो गई है', 'info');
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    border: `2px solid ${language === 'hi' ? 'var(--color-primary)' : 'var(--border-color)'}`,
+                    background: language === 'hi' ? 'var(--color-primary-light)' : 'var(--bg-input)',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.88rem',
+                  }}
+                >
+                  <span>हिंदी (Hindi)</span>
+                  {language === 'hi' && <Check size={16} color="var(--color-primary)" />}
+                </div>
               </div>
             </div>
           </div>

@@ -72,7 +72,7 @@ export interface ConversationMember {
   created_at: string;
 }
 
-export type MessageType = 'text' | 'emoji' | 'voice' | 'video';
+export type MessageType = 'text' | 'emoji' | 'voice' | 'video' | 'image' | 'like';
 export type MessageStatus = 'sent' | 'delivered' | 'read';
 
 export interface Message {
@@ -83,10 +83,11 @@ export interface Message {
   content: string;
   media_url?: string | null;
   media_duration?: number | null; // seconds for voice
-  media_size_bytes?: number | null; // bytes for video
+  media_size_bytes?: number | null; // bytes for video/image
   status: MessageStatus;
   deleted_for_everyone: boolean;
   deleted_by_users: string[];
+  reactions?: Record<string, string> | null; // e.g. { [userId]: '❤️' }
   created_at: string;
   expires_at: string;
   // sender profile joined
@@ -116,4 +117,4 @@ export interface AdminAuditLog {
   admin?: Profile;
 }
 
-export type TabType = 'chat' | 'nearby' | 'search' | 'profile';
+export type TabType = 'home' | 'chat' | 'search' | 'profile';

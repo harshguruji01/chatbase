@@ -1,7 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Smile, Mic, Send, Video } from 'lucide-react';
+import {
+  Plus,
+  Smile,
+  Mic,
+  Send,
+  Image as ImageIcon,
+  Camera,
+  Video,
+  Heart,
+} from 'lucide-react';
 import { EmojiPicker } from './EmojiPicker';
-import { VoiceRecorderModal } from './VoiceRecorderModal';
+import { InlineVoiceRecorder } from './InlineVoiceRecorder';
+import { ImagePreviewModal } from './ImagePreviewModal';
 import { VideoUploaderModal } from './VideoUploaderModal';
 import { useChat } from '../../context/ChatContext';
 
@@ -10,12 +20,15 @@ export const Composer: React.FC = () => {
 
   const [text, setText] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
-  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showActionsMenu, setShowActionsMenu] = useState(false);
+  const [isRecordingInline, setIsRecordingInline] = useState(false);
+  const [stagedImage, setStagedImage] = useState<File | null>(null);
   const [isSending, setIsSending] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-resize textarea as text grows
   useEffect(() => {
@@ -42,6 +55,16 @@ export const Composer: React.FC = () => {
     setIsSending(false);
   };
 
+  const handleSendHeart = async () => {
+    if (isSending) return;
+    setIsSending(true);
+    await sendMessage({
+      type: 'like',
+      content: '❤️',
+    });
+    setIsSending(false);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -59,6 +82,7 @@ export const Composer: React.FC = () => {
       mediaFile: blob,
       duration: durationSeconds,
     });
+    setIsRecordingInline(false);
   };
 
   const handleSendVideo = async (file: File) => {
@@ -68,18 +92,58 @@ export const Composer: React.FC = () => {
     });
   };
 
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setStagedImage(e.target.files[0]);
+      e.target.value = '';
+    }
+  };
+
+  const handleSendImage = async (file: File, caption: string) => {
+    await sendMessage({
+      type: 'image',
+      mediaFile: file,
+      content: caption,
+    });
+    setStagedImage(null);
+  };
+
+  // Support pasting images from clipboard (e.g. screenshots)
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    if (e.clipboardData.items) {
+      const items = Array.from(e.clipboardData.items);
+      for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            setStagedImage(file);
+            break;
+          }
+        }
+      }
+    }
+  };
+
   return (
-    <div
-      style={{
-        padding: '12px 16px',
-        borderTop: '1px solid var(--border-color)',
-        background: 'var(--bg-card)',
-        display: 'flex',
-        alignItems: 'flex-end',
-        gap: '8px',
-        position: 'relative',
-      }}
-    >
+    <div className="ig-composer-container">
+      {/* Hidden File Inputs */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        style={{ display: 'none' }}
+        onChange={handleImageFileChange}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: 'none' }}
+        onChange={handleImageFileChange}
+      />
+
       {/* Emoji Picker Popover */}
       {showEmojiPicker && (
         <EmojiPicker
@@ -88,182 +152,201 @@ export const Composer: React.FC = () => {
         />
       )}
 
-      {/* Attachments Menu */}
-      {showAttachMenu && (
-        <div
-          className="card fade-in-up"
-          style={{
-            position: 'absolute',
-            bottom: '68px',
-            left: '12px',
-            padding: '8px',
-            zIndex: 40,
-            boxShadow: 'var(--shadow-lg)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px',
-            minWidth: '160px',
-          }}
-        >
+      {/* Instagram Actions Drawer (+ Menu) */}
+      {showActionsMenu && (
+        <div className="ig-actions-menu ig-slide-up">
+          {/* Gallery / Photos */}
           <button
+            className="ig-menu-item"
             onClick={() => {
-              setShowAttachMenu(false);
+              setShowActionsMenu(false);
+              imageInputRef.current?.click();
+            }}
+          >
+            <div className="ig-menu-item-icon" style={{ background: 'linear-gradient(135deg, #10B981, #059669)' }}>
+              <ImageIcon size={20} />
+            </div>
+            <span>Photos</span>
+          </button>
+
+          {/* Camera */}
+          <button
+            className="ig-menu-item"
+            onClick={() => {
+              setShowActionsMenu(false);
+              cameraInputRef.current?.click();
+            }}
+          >
+            <div className="ig-menu-item-icon" style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)' }}>
+              <Camera size={20} />
+            </div>
+            <span>Camera</span>
+          </button>
+
+          {/* Voice Note */}
+          <button
+            className="ig-menu-item"
+            onClick={() => {
+              setShowActionsMenu(false);
+              setIsRecordingInline(true);
+            }}
+          >
+            <div className="ig-menu-item-icon" style={{ background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)' }}>
+              <Mic size={20} />
+            </div>
+            <span>Voice Note</span>
+          </button>
+
+          {/* Video */}
+          <button
+            className="ig-menu-item"
+            onClick={() => {
+              setShowActionsMenu(false);
               setShowVideoModal(true);
             }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '8px 12px',
-              fontSize: '0.9rem',
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              borderRadius: 'var(--radius-sm)',
-              textAlign: 'left',
-            }}
-            onMouseEnter={(e) => ((e.target as HTMLElement).style.background = 'var(--bg-card-hover)')}
-            onMouseLeave={(e) => ((e.target as HTMLElement).style.background = 'transparent')}
           >
-            <Video size={18} color="var(--color-primary)" />
-            <span>Send Video</span>
+            <div className="ig-menu-item-icon" style={{ background: 'linear-gradient(135deg, #EC4899, #BE185D)' }}>
+              <Video size={20} />
+            </div>
+            <span>Video</span>
+          </button>
+
+          {/* Stickers / Emojis */}
+          <button
+            className="ig-menu-item"
+            onClick={() => {
+              setShowActionsMenu(false);
+              setShowEmojiPicker(true);
+            }}
+          >
+            <div className="ig-menu-item-icon" style={{ background: 'linear-gradient(135deg, #F59E0B, #D97706)' }}>
+              <Smile size={20} />
+            </div>
+            <span>Stickers</span>
+          </button>
+
+          {/* Quick Heart / Like */}
+          <button
+            className="ig-menu-item"
+            onClick={() => {
+              setShowActionsMenu(false);
+              handleSendHeart();
+            }}
+          >
+            <div className="ig-menu-item-icon" style={{ background: 'linear-gradient(135deg, #EF4444, #DC2626)' }}>
+              <Heart size={20} fill="#ffffff" />
+            </div>
+            <span>Quick Like</span>
           </button>
         </div>
       )}
 
-      {/* Attach / Plus Button */}
-      <button
-        type="button"
-        onClick={() => setShowAttachMenu(!showAttachMenu)}
-        style={{
-          width: '38px',
-          height: '38px',
-          borderRadius: '50%',
-          border: '1px solid var(--border-color)',
-          background: showAttachMenu ? 'var(--bg-card-hover)' : 'transparent',
-          color: 'var(--text-secondary)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          transition: 'transform 0.2s',
-          transform: showAttachMenu ? 'rotate(45deg)' : 'none',
-        }}
-        title="Attach Media"
-      >
-        <Plus size={20} />
-      </button>
-
-      {/* Textarea Input Container */}
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          background: 'var(--bg-input)',
-          border: '1.5px solid var(--border-color)',
-          borderRadius: '24px',
-          padding: '6px 12px',
-          minHeight: '40px',
-        }}
-      >
-        <textarea
-          ref={textareaRef}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
-          rows={1}
-          style={{
-            width: '100%',
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            resize: 'none',
-            color: 'var(--text-primary)',
-            fontSize: '0.95rem',
-            lineHeight: 1.4,
-            maxHeight: '120px',
-            overflowY: 'auto',
-          }}
+      {/* Inline Instagram Voice Recorder Mode */}
+      {isRecordingInline ? (
+        <InlineVoiceRecorder
+          onSendVoice={handleSendVoice}
+          onCancel={() => setIsRecordingInline(false)}
         />
-
-        {/* Emoji Button */}
-        <button
-          type="button"
-          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: showEmojiPicker ? 'var(--color-primary)' : 'var(--text-muted)',
-            cursor: 'pointer',
-            padding: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          title="Insert Emoji"
-        >
-          <Smile size={20} />
-        </button>
-      </div>
-
-      {/* Voice Recorder or Send Button */}
-      {text.trim().length > 0 ? (
-        <button
-          type="button"
-          onClick={handleSendText}
-          disabled={isSending}
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            background: 'var(--color-primary)',
-            border: 'none',
-            color: '#FFFFFF',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            boxShadow: 'var(--shadow-sm)',
-            transition: 'transform 0.1s',
-          }}
-          title="Send message"
-        >
-          <Send size={18} />
-        </button>
       ) : (
-        <button
-          type="button"
-          onClick={() => setShowVoiceModal(true)}
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            background: 'rgba(99, 102, 241, 0.12)',
-            border: '1px solid rgba(99, 102, 241, 0.3)',
-            color: 'var(--color-primary)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            transition: 'transform 0.1s',
-          }}
-          title="Record voice note"
-        >
-          <Mic size={20} />
-        </button>
+        <>
+          {/* Plus (+) Action Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setShowActionsMenu(!showActionsMenu)}
+            className={`ig-action-btn ${showActionsMenu ? 'plus-active' : ''}`}
+            title="More actions"
+          >
+            <Plus size={22} />
+          </button>
+
+          {/* Capsule Text Input Pill */}
+          <div className="ig-input-pill">
+            <textarea
+              ref={textareaRef}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              placeholder="Message..."
+              rows={1}
+              className="ig-textarea"
+            />
+
+            {/* In-pill Emoji Picker Button */}
+            <button
+              type="button"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: showEmojiPicker ? 'var(--color-primary)' : 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'color 0.15s ease',
+              }}
+              title="Insert Emoji"
+            >
+              <Smile size={20} />
+            </button>
+          </div>
+
+          {/* Right Action Icons or Send Button */}
+          {text.trim().length > 0 ? (
+            <button
+              type="button"
+              onClick={handleSendText}
+              disabled={isSending}
+              className="ig-send-btn fade-in-up"
+              title="Send message"
+            >
+              <Send size={18} />
+            </button>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+              {/* Direct Inline Mic Button */}
+              <button
+                type="button"
+                onClick={() => setIsRecordingInline(true)}
+                className="ig-action-btn"
+                title="Voice note"
+              >
+                <Mic size={20} />
+              </button>
+
+              {/* Direct Gallery / Photo Button */}
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                className="ig-action-btn"
+                title="Send photo"
+              >
+                <ImageIcon size={20} />
+              </button>
+
+              {/* Instagram Signature Quick Heart Button */}
+              <button
+                type="button"
+                onClick={handleSendHeart}
+                className="ig-action-btn"
+                style={{ color: 'var(--color-danger)' }}
+                title="Send heart"
+              >
+                <Heart size={20} />
+              </button>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Voice Recorder Modal */}
-      <VoiceRecorderModal
-        isOpen={showVoiceModal}
-        onClose={() => setShowVoiceModal(false)}
-        onSendVoice={handleSendVoice}
+      {/* Image Preview & Caption Modal */}
+      <ImagePreviewModal
+        isOpen={!!stagedImage}
+        imageFile={stagedImage}
+        onClose={() => setStagedImage(null)}
+        onSendImage={handleSendImage}
       />
 
       {/* Video Uploader Modal */}

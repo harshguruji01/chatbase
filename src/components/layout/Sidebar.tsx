@@ -1,22 +1,24 @@
-import { MessageSquare, Compass, Search, User, ShieldAlert, Moon, Sun, Laptop, Settings } from 'lucide-react';
+import React from 'react';
+import { Home, MessageSquare, Search, User, Moon, Sun, Laptop, Settings } from 'lucide-react';
 import type { TabType } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { BrandHeader } from '../common/BrandHeader';
 import { Avatar } from '../common/Avatar';
 
 interface SidebarProps {
   activeTab: TabType;
   onSelectTab: (tab: TabType) => void;
-  onGoToAdmin: () => void;
   onOpenSettings?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab, onGoToAdmin, onOpenSettings }) => {
-  const { profile, isAdmin } = useAuth();
+export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab, onOpenSettings }) => {
+  const { profile } = useAuth();
   const { conversations } = useChat();
   const { theme, setTheme } = useTheme();
+  const { t } = useLanguage();
 
   const totalUnread = conversations.reduce((acc, c) => acc + (c.unread_count || 0), 0);
 
@@ -44,7 +46,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab, onGoTo
       </div>
 
       {/* Navigation Buttons */}
-      <div className="desktop-nav-menu" style={{ flex: 1 }}>
+      <div className="desktop-nav-menu" style={{ flex: 1, padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        {/* 1. Home */}
+        <button
+          className={`desktop-nav-btn ${activeTab === 'home' ? 'active' : ''}`}
+          onClick={() => onSelectTab('home')}
+        >
+          <Home size={20} />
+          <span>{t('home')}</span>
+        </button>
+
+        {/* 2. Chats */}
         <button
           className={`desktop-nav-btn ${activeTab === 'chat' ? 'active' : ''}`}
           onClick={() => onSelectTab('chat')}
@@ -53,57 +65,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab, onGoTo
             <MessageSquare size={20} />
             {totalUnread > 0 && <span className="bottom-nav-badge">{totalUnread}</span>}
           </div>
-          <span>Messages</span>
+          <span>{t('chats')}</span>
         </button>
 
-        <button
-          className={`desktop-nav-btn ${activeTab === 'nearby' ? 'active' : ''}`}
-          onClick={() => onSelectTab('nearby')}
-        >
-          <Compass size={20} />
-          <span>Discover Nearby</span>
-        </button>
-
+        {/* 3. Search */}
         <button
           className={`desktop-nav-btn ${activeTab === 'search' ? 'active' : ''}`}
           onClick={() => onSelectTab('search')}
         >
           <Search size={20} />
-          <span>Find by ID</span>
+          <span>{t('search')}</span>
         </button>
 
+        {/* 4. Profile */}
         <button
           className={`desktop-nav-btn ${activeTab === 'profile' ? 'active' : ''}`}
           onClick={() => onSelectTab('profile')}
         >
           <User size={20} />
-          <span>My Profile</span>
+          <span>{t('profile')}</span>
         </button>
 
+        {/* Settings */}
         {onOpenSettings && (
           <button
             className="desktop-nav-btn"
             onClick={onOpenSettings}
-            title="Settings (Password, Biodata, Theme, Accounts)"
+            title={t('settings')}
           >
             <Settings size={20} />
-            <span>Settings</span>
+            <span>{t('settings')}</span>
           </button>
         )}
-
-        <button
-          className="desktop-nav-btn"
-          onClick={onGoToAdmin}
-          style={{
-            color: isAdmin ? 'var(--color-primary)' : 'var(--text-muted)',
-            marginTop: '8px',
-            background: isAdmin ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
-          }}
-          title={isAdmin ? 'Admin Dashboard (Active)' : 'Admin Console (PIN Protected)'}
-        >
-          <ShieldAlert size={20} />
-          <span>{isAdmin ? 'Admin Panel' : 'Admin Portal'}</span>
-        </button>
       </div>
 
       {/* Bottom Profile Bar */}
@@ -117,7 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab, onGoTo
         }}
       >
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', minWidth: 0 }}
           onClick={() => onSelectTab('profile')}
         >
           <Avatar src={profile?.avatar_url} name={profile?.display_name || 'Me'} size="sm" isOnline />
@@ -140,6 +133,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab, onGoTo
             cursor: 'pointer',
             padding: '6px',
             borderRadius: '50%',
+            flexShrink: 0,
           }}
           title="Toggle Theme"
         >

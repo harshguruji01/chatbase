@@ -10,14 +10,15 @@ import {
   Info,
   Trash2,
   Check,
-  ShieldAlert,
   Lock,
   Settings,
   Users,
   User as UserIcon,
+  Languages,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Avatar } from '../common/Avatar';
 import { OutlinedButton } from '../common/OutlinedButton';
 import { EditProfileModal } from './EditProfileModal';
@@ -30,13 +31,10 @@ import { supabase } from '../../lib/supabase';
 import type { Profile } from '../../types';
 import { useToast } from '../common/Toast';
 
-interface ProfileViewProps {
-  onGoToAdmin?: () => void;
-}
-
-export const ProfileView: React.FC<ProfileViewProps> = ({ onGoToAdmin }) => {
-  const { profile, signOut, deleteAccount, isAdmin } = useAuth();
+export const ProfileView: React.FC = () => {
+  const { profile, signOut, deleteAccount } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   const { showToast } = useToast();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -203,43 +201,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onGoToAdmin }) => {
           </div>
         </div>
 
-        {/* Admin Dashboard Entry */}
-        {onGoToAdmin && (
-          <div
-            className="card"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '16px 20px',
-              border: isAdmin ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
-              background: isAdmin ? 'rgba(99, 102, 241, 0.08)' : 'var(--bg-card)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <ShieldAlert size={22} color={isAdmin ? 'var(--color-primary)' : 'var(--text-muted)'} />
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Admin Dashboard</span>
-                  {isAdmin && (
-                    <span style={{ fontSize: '0.65rem', background: 'var(--color-primary)', color: '#fff', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                      ADMIN
-                    </span>
-                  )}
-                </div>
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
-                  {isAdmin
-                    ? 'Manage platform users, metrics, abuse reports & system logs.'
-                    : 'Developer & administrative management console (PIN protected).'}
-                </p>
-              </div>
-            </div>
-            <OutlinedButton variant={isAdmin ? 'primary' : 'secondary'} size="sm" onClick={onGoToAdmin}>
-              {isAdmin ? 'Open Admin' : 'Admin Login'}
-            </OutlinedButton>
-          </div>
-        )}
-
         {/* Theme Settings Section */}
         <div className="card" style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <h4 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Appearance & Theme</h4>
@@ -302,6 +263,54 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onGoToAdmin }) => {
               }}
             >
               <Laptop size={16} /> Auto
+            </button>
+          </div>
+        </div>
+
+        {/* Language Selection Section */}
+        <div className="card" style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Languages size={18} color="var(--color-primary)" />
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0 }}>{t('language')} / Language</h4>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <button
+              onClick={() => setLanguage('en')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '10px',
+                borderRadius: 'var(--radius-md)',
+                border: `1.5px solid ${language === 'en' ? 'var(--color-primary)' : 'var(--border-color)'}`,
+                background: language === 'en' ? 'var(--color-primary-light)' : 'var(--bg-input)',
+                color: language === 'en' ? 'var(--color-primary)' : 'var(--text-secondary)',
+                fontWeight: 600,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+              }}
+            >
+              English
+            </button>
+            <button
+              onClick={() => setLanguage('hi')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '10px',
+                borderRadius: 'var(--radius-md)',
+                border: `1.5px solid ${language === 'hi' ? 'var(--color-primary)' : 'var(--border-color)'}`,
+                background: language === 'hi' ? 'var(--color-primary-light)' : 'var(--bg-input)',
+                color: language === 'hi' ? 'var(--color-primary)' : 'var(--text-secondary)',
+                fontWeight: 600,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+              }}
+            >
+              हिंदी (Hindi)
             </button>
           </div>
         </div>
