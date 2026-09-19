@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'path';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -7,25 +8,16 @@ export default defineConfig({
   plugins: [react()],
   build: {
     target: 'esnext',
-    cssCodeSplit: true,
-    chunkSizeWarningLimit: 600,
+    cssCodeSplit: false,
+    chunkSizeWarningLimit: 5000,
     rollupOptions: {
+      input: path.resolve(__dirname, 'template.html'),
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
-            return 'vendor-react';
-          }
-          if (id.includes('node_modules/@supabase')) {
-            return 'vendor-supabase';
-          }
-          if (id.includes('node_modules/lucide-react')) {
-            return 'vendor-icons';
-          }
-          if (id.includes('node_modules/@capacitor')) {
-            return 'vendor-capacitor';
-          }
-        },
+        entryFileNames: 'assets/[name].js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name].[ext]',
       },
     },
   },
 });
+
