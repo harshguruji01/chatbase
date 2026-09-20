@@ -31,11 +31,11 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     }
   }, [imageFile]);
 
-  const handleSend = async () => {
+  const handleSend = () => {
     if (!imageFile || isSending) return;
     setIsSending(true);
     try {
-      await onSendImage(imageFile, caption.trim());
+      onSendImage(imageFile, caption.trim());
       onClose();
     } finally {
       setIsSending(false);

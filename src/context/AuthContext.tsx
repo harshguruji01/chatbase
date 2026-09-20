@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../types';
 import type { User, Session } from '@supabase/supabase-js';
+import { compressAvatar } from '../lib/compression';
 
 export interface SavedAccount {
   id: string;
@@ -226,11 +227,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       let avatarUrl: string | undefined;
       if (avatarFile) {
-        const fileExt = avatarFile.name.split('.').pop();
+        const compressedAvatar = await compressAvatar(avatarFile).catch(() => avatarFile);
+        const fileExt = compressedAvatar.type?.includes('webp') ? 'webp' : 'jpg';
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
         const { data: uploadData, error: uploadErr } = await supabase.storage
           .from('avatars')
-          .upload(fileName, avatarFile, { upsert: true });
+          .upload(fileName, compressedAvatar, { upsert: true });
 
         if (!uploadErr && uploadData) {
           const { data: publicUrlData } = supabase.storage

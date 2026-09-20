@@ -142,6 +142,7 @@ export const Composer: React.FC = () => {
   };
 
   const handleSendImage = async (file: File, caption: string) => {
+    setStagedImage(null);
     const res = await sendMessage({
       type: 'image',
       mediaFile: file,
@@ -150,7 +151,6 @@ export const Composer: React.FC = () => {
     if (res?.error) {
       showToast(res.error, 'error');
     }
-    setStagedImage(null);
   };
 
   // Support pasting images from clipboard (e.g. screenshots)

@@ -80,7 +80,7 @@ export interface ConversationMember {
 }
 
 export type MessageType = 'text' | 'emoji' | 'voice' | 'video' | 'image' | 'like';
-export type MessageStatus = 'sent' | 'delivered' | 'read';
+export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
 
 export interface Message {
   id: string;

@@ -239,12 +239,45 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
               {/* Photo / Image Message */}
               {message.type === 'image' && message.media_url && (
-                <div className="ig-image-bubble" onClick={() => setShowLightbox(true)}>
+                <div
+                  className="ig-image-bubble"
+                  onClick={() => message.status !== 'sending' && setShowLightbox(true)}
+                  style={{ position: 'relative' }}
+                >
                   <img
                     src={message.media_url}
                     alt="Chat attachment"
                     loading="lazy"
+                    style={message.status === 'sending' ? { filter: 'brightness(0.85)' } : undefined}
                   />
+                  {message.status === 'sending' && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(0, 0, 0, 0.28)',
+                        borderRadius: 'inherit',
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          border: '3px solid rgba(255, 255, 255, 0.35)',
+                          borderTopColor: '#ffffff',
+                          borderRadius: '50%',
+                          animation: 'spin 0.8s linear infinite',
+                        }}
+                      />
+                    </div>
+                  )}
                   {message.content && (
                     <p className="ig-image-caption">{message.content}</p>
                   )}
@@ -537,10 +570,30 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         <span>{formatMessageTime(message.created_at)}</span>
 
         {isOutgoing && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '2px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '3px' }}>
+            {message.status === 'sending' && (
+              <span
+                style={{
+                  display: 'inline-block',
+                  width: '10px',
+                  height: '10px',
+                  border: '1.5px solid currentColor',
+                  borderTopColor: 'transparent',
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite',
+                  opacity: 0.8,
+                }}
+                title="Sending..."
+              />
+            )}
             {message.status === 'sent' && <Check size={13} color="currentColor" />}
             {message.status === 'delivered' && <CheckCheck size={13} color="currentColor" />}
             {message.status === 'read' && <CheckCheck size={13} color="#38BDF8" />}
+            {message.status === 'failed' && (
+              <span style={{ color: '#EF4444', fontSize: '0.68rem', fontWeight: 700 }} title="Failed to send">
+                !
+              </span>
+            )}
           </span>
         )}
       </div>

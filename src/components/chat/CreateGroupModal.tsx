@@ -8,6 +8,7 @@ import { useChat } from '../../context/ChatContext';
 import { useToast } from '../common/Toast';
 import { supabase } from '../../lib/supabase';
 import type { Profile } from '../../types';
+import { compressAvatar } from '../../lib/compression';
 
 interface CreateGroupModalProps {
   isOpen: boolean;
@@ -95,15 +96,17 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     return () => clearTimeout(timer);
   }, [searchQuery, isOpen, user]);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        showToast('Image size must be less than 5 MB', 'error');
-        return;
+      try {
+        const compressed = await compressAvatar(file);
+        setAvatarFile(compressed);
+        setAvatarPreview(URL.createObjectURL(compressed));
+      } catch {
+        setAvatarFile(file);
+        setAvatarPreview(URL.createObjectURL(file));
       }
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
     }
   };
 
