@@ -445,9 +445,42 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab:
                           </div>
                         </div>
 
-                        <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)', fontWeight: 600 }}>
-                          Open →
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)', fontWeight: 600 }}>
+                            Open →
+                          </span>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setConvToManage(conv);
+                              setShowConvOptionsModal(true);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--text-muted)',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              borderRadius: '50%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                            title="Chat Options"
+                            aria-label="Chat options"
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.color = 'var(--text-primary)';
+                              e.currentTarget.style.background = 'var(--bg-card-hover)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.color = 'var(--text-muted)';
+                              e.currentTarget.style.background = 'transparent';
+                            }}
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
