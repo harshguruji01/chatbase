@@ -28,13 +28,24 @@ export const InlineVoiceRecorder: React.FC<InlineVoiceRecorderProps> = ({
 
   const recorderRef = useRef<VoiceRecorder | null>(null);
   const audioPreviewRef = useRef<HTMLAudioElement | null>(null);
+  const stopRecordingRef = useRef<(() => Promise<void>) | null>(null);
 
-  useEffect(() => {
-    startRecording();
-    return () => cleanup();
+  const cleanup = React.useCallback(() => {
+    if (recorderRef.current) {
+      recorderRef.current.cancel();
+      recorderRef.current = null;
+    }
+    if (audioPreviewRef.current) {
+      audioPreviewRef.current.pause();
+      audioPreviewRef.current = null;
+    }
+    setIsRecording(false);
+    setRecordedAudio(null);
+    setElapsedSeconds(0);
+    setIsPlayingPreview(false);
   }, []);
 
-  const startRecording = async () => {
+  const startRecording = React.useCallback(async () => {
     cleanup();
     try {
       const recorder = new VoiceRecorder();
@@ -50,7 +61,7 @@ export const InlineVoiceRecorder: React.FC<InlineVoiceRecorderProps> = ({
 
       recorder.onMaxDurationReached = async () => {
         showToast('Max 1 minute duration reached.', 'info');
-        stopRecording();
+        stopRecordingRef.current?.();
       };
 
       await recorder.start();
@@ -59,7 +70,12 @@ export const InlineVoiceRecorder: React.FC<InlineVoiceRecorderProps> = ({
       showToast(err.message || 'Microphone access denied.', 'error');
       onCancel();
     }
-  };
+  }, [cleanup, onCancel, showToast]);
+
+  useEffect(() => {
+    startRecording();
+    return () => cleanup();
+  }, [startRecording, cleanup]);
 
   const stopRecording = async () => {
     if (!recorderRef.current || !isRecording) return;
@@ -75,6 +91,7 @@ export const InlineVoiceRecorder: React.FC<InlineVoiceRecorderProps> = ({
       console.error(err);
     }
   };
+  stopRecordingRef.current = stopRecording;
 
   const togglePreview = () => {
     if (!audioPreviewRef.current && recordedAudio) {
@@ -120,20 +137,7 @@ export const InlineVoiceRecorder: React.FC<InlineVoiceRecorderProps> = ({
     }
   };
 
-  const cleanup = () => {
-    if (recorderRef.current) {
-      recorderRef.current.cancel();
-      recorderRef.current = null;
-    }
-    if (audioPreviewRef.current) {
-      audioPreviewRef.current.pause();
-      audioPreviewRef.current = null;
-    }
-    setIsRecording(false);
-    setRecordedAudio(null);
-    setElapsedSeconds(0);
-    setIsPlayingPreview(false);
-  };
+
 
   // Generate 16 bars for the dynamic equalizer
   const bars = [0.4, 0.7, 0.5, 0.9, 0.3, 0.8, 0.6, 1.0, 0.7, 0.5, 0.9, 0.4, 0.75, 0.55, 0.85, 0.4];
