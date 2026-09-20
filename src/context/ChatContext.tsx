@@ -683,9 +683,29 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (newMsg) {
-        setMessages((prev) => [...prev, newMsg as Message]);
+        const fullMsg: Message = {
+          ...(newMsg as Message),
+          sender: (newMsg as any).sender || profile || undefined,
+        };
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === fullMsg.id)) return prev;
+          return [...prev, fullMsg];
+        });
         triggerHaptics(20);
       }
+
+      // Also update conversations list in state immediately so left panel shows the new message
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === activeConversation.id
+            ? {
+                ...c,
+                last_message_text: summaryText,
+                last_message_at: new Date().toISOString(),
+              }
+            : c
+        )
+      );
 
       return {};
     } catch (err: any) {

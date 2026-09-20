@@ -15,9 +15,11 @@ import { ImagePreviewModal } from './ImagePreviewModal';
 import { VideoUploaderModal } from './VideoUploaderModal';
 import { useChat } from '../../context/ChatContext';
 import { useBackButton } from '../../lib/useBackButton';
+import { useToast } from '../common/Toast';
 
 export const Composer: React.FC = () => {
   const { sendMessage, uploadProgress, broadcastTyping } = useChat();
+  const { showToast } = useToast();
 
   const [text, setText] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -74,10 +76,14 @@ export const Composer: React.FC = () => {
       textareaRef.current.style.height = 'auto';
     }
 
-    await sendMessage({
+    const res = await sendMessage({
       type: 'text',
       content,
     });
+    if (res?.error) {
+      showToast(res.error, 'error');
+      setText(content);
+    }
     setIsSending(false);
   };
 
@@ -85,10 +91,13 @@ export const Composer: React.FC = () => {
     if (isSending) return;
     setIsSending(true);
     broadcastTyping(false);
-    await sendMessage({
+    const res = await sendMessage({
       type: 'like',
       content: '❤️',
     });
+    if (res?.error) {
+      showToast(res.error, 'error');
+    }
     setIsSending(false);
   };
 
@@ -104,19 +113,25 @@ export const Composer: React.FC = () => {
   };
 
   const handleSendVoice = async (blob: Blob, durationSeconds: number) => {
-    await sendMessage({
+    const res = await sendMessage({
       type: 'voice',
       mediaFile: blob,
       duration: durationSeconds,
     });
+    if (res?.error) {
+      showToast(res.error, 'error');
+    }
     setIsRecordingInline(false);
   };
 
   const handleSendVideo = async (file: File) => {
-    await sendMessage({
+    const res = await sendMessage({
       type: 'video',
       mediaFile: file,
     });
+    if (res?.error) {
+      showToast(res.error, 'error');
+    }
   };
 
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,11 +142,14 @@ export const Composer: React.FC = () => {
   };
 
   const handleSendImage = async (file: File, caption: string) => {
-    await sendMessage({
+    const res = await sendMessage({
       type: 'image',
       mediaFile: file,
       content: caption,
     });
+    if (res?.error) {
+      showToast(res.error, 'error');
+    }
     setStagedImage(null);
   };
 
