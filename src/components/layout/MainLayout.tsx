@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { TabType } from '../../types';
 import { useChat } from '../../context/ChatContext';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../common/Toast';
 import { backNavigation } from '../../lib/backNavigation';
 import { useBackButton } from '../../lib/useBackButton';
@@ -13,14 +14,17 @@ import { UserSearch } from '../search/UserSearch';
 import { ProfileView } from '../profile/ProfileView';
 import { LocationPermissionModal } from '../auth/LocationPermissionModal';
 import { SettingsModal } from '../settings/SettingsModal';
+import { PublicProfileModal } from '../profile/PublicProfileModal';
 
 export const MainLayout: React.FC = () => {
-  const { activeConversation, selectConversation } = useChat();
+  const { user } = useAuth();
+  const { activeConversation, selectConversation, startChatWithUser } = useChat();
   const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<TabType>('chat');
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [publicProfileUserId, setPublicProfileUserId] = useState<string | null>(null);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth > 900);
 
   // Initialize centralized hardware & browser back button handling
@@ -31,6 +35,7 @@ export const MainLayout: React.FC = () => {
   // Back handler for closing modals
   useBackButton(() => setShowLocationModal(false), showLocationModal, 90);
   useBackButton(() => setIsSettingsOpen(false), isSettingsOpen, 90);
+  useBackButton(() => setPublicProfileUserId(null), Boolean(publicProfileUserId), 80);
 
   // Back handler for secondary tabs: return to 'chat' tab (priority 15)
   useBackButton(
@@ -41,6 +46,18 @@ export const MainLayout: React.FC = () => {
     activeTab !== 'chat',
     15
   );
+
+  const handleViewProfile = (userId: string) => {
+    if (!userId) return;
+    if (user && userId === user.id) {
+      if (activeConversation) {
+        selectConversation(null);
+      }
+      setActiveTab('profile');
+    } else {
+      setPublicProfileUserId(userId);
+    }
+  };
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth > 900);
@@ -111,16 +128,13 @@ export const MainLayout: React.FC = () => {
             <div style={{ flex: 1, height: '100%', overflow: 'hidden', display: 'flex' }}>
               {!activeConversation ? (
                 // Full Screen Conversation List
-                <ConversationList onSelectTab={setActiveTab} />
+                <ConversationList onSelectTab={setActiveTab} onViewProfile={handleViewProfile} />
               ) : (
                 // Full Screen Chat Session with Message & Input bar
                 <div style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column' }}>
                   <ChatWindow
                     onBack={handleBackFromChat}
-                    onViewProfile={() => {
-                      selectConversation(null);
-                      setActiveTab('profile');
-                    }}
+                    onViewProfile={handleViewProfile}
                   />
                 </div>
               )}
@@ -132,7 +146,7 @@ export const MainLayout: React.FC = () => {
             <div style={{ flex: 1, height: '100%', overflow: 'hidden' }}>
               <UserSearch
                 onStartChat={handleStartChatFromOtherTab}
-                onViewProfile={() => setActiveTab('profile')}
+                onViewProfile={handleViewProfile}
               />
             </div>
           )}
@@ -158,6 +172,18 @@ export const MainLayout: React.FC = () => {
           />
         )}
       </div>
+
+      {/* Public Profile Modal (for other users) */}
+      <PublicProfileModal
+        isOpen={Boolean(publicProfileUserId)}
+        userId={publicProfileUserId}
+        onClose={() => setPublicProfileUserId(null)}
+        onStartChat={async (targetUser) => {
+          setPublicProfileUserId(null);
+          handleStartChatFromOtherTab();
+          await startChatWithUser(targetUser);
+        }}
+      />
 
       {/* Location Permission Modal */}
       <LocationPermissionModal

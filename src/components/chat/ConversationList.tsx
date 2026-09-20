@@ -14,9 +14,10 @@ import { CreateGroupModal } from './CreateGroupModal';
 
 interface ConversationListProps {
   onSelectTab: (tab: TabType) => void;
+  onViewProfile?: (userId: string) => void;
 }
 
-export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab: _onSelectTab }) => {
+export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab: _onSelectTab, onViewProfile }) => {
   const { user } = useAuth();
   const {
     conversations,
@@ -443,7 +444,13 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab:
                       >
                         <div
                           style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1, cursor: 'pointer' }}
-                          onClick={() => handleStartChatWithTarget(targetUser)}
+                          onClick={() => {
+                            if (onViewProfile) {
+                              onViewProfile(targetUser.id);
+                            } else {
+                              handleStartChatWithTarget(targetUser);
+                            }
+                          }}
                         >
                           <Avatar
                             src={targetUser.avatar_url}

@@ -93,3 +93,13 @@ export function triggerHaptics(duration: number = 15): void {
   }
 }
 
+export function formatMemberSince(dateString?: string | null): string {
+  if (!dateString) return 'Recently';
+  try {
+    const d = new Date(dateString);
+    return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  } catch {
+    return 'Recently';
+  }
+}
+
