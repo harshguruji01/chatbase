@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, MessageSquare, Users, MessageCircle, X, Sparkles, AlertCircle } from 'lucide-react';
+import { Search, MessageSquare, Users, MessageCircle, X, Sparkles, AlertCircle, Trash2, MoreVertical } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../common/Toast';
 import { Avatar } from '../common/Avatar';
 import { OutlinedButton } from '../common/OutlinedButton';
+import { Modal } from '../common/Modal';
 import { formatRelativeTime } from '../../lib/utils';
 import { supabase } from '../../lib/supabase';
-import type { TabType, Profile } from '../../types';
+import { useBackButton } from '../../lib/useBackButton';
+import type { TabType, Profile, Conversation } from '../../types';
 import { BrandHeader } from '../common/BrandHeader';
 import { CreateGroupModal } from './CreateGroupModal';
 
@@ -24,6 +26,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab:
     activeConversation,
     selectConversation,
     startChatWithUser,
+    clearChat,
+    deleteConversation,
     isUserBlocked,
     isLoadingConversations,
   } = useChat();
@@ -32,6 +36,51 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab:
 
   const [searchFilter, setSearchFilter] = useState('');
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+
+  // Conversation options & clear/delete modal states
+  const [convToManage, setConvToManage] = useState<Conversation | null>(null);
+  const [showConvOptionsModal, setShowConvOptionsModal] = useState(false);
+  const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [isProcessingConv, setIsProcessingConv] = useState(false);
+
+  useBackButton(() => setShowConvOptionsModal(false), showConvOptionsModal, 45);
+  useBackButton(() => setShowClearConfirmModal(false), showClearConfirmModal, 50);
+  useBackButton(() => setShowDeleteConfirmModal(false), showDeleteConfirmModal, 50);
+
+  const handleConfirmClearChat = async () => {
+    if (!convToManage) return;
+    setIsProcessingConv(true);
+    try {
+      const { error } = await clearChat(convToManage.id);
+      if (error) {
+        showToast(error, 'error');
+      } else {
+        showToast('Chat cleared from your device', 'success');
+        setShowClearConfirmModal(false);
+        setConvToManage(null);
+      }
+    } finally {
+      setIsProcessingConv(false);
+    }
+  };
+
+  const handleConfirmDeleteConv = async () => {
+    if (!convToManage) return;
+    setIsProcessingConv(true);
+    try {
+      const { error } = await deleteConversation(convToManage.id);
+      if (error) {
+        showToast(error, 'error');
+      } else {
+        showToast('Conversation removed from your device', 'success');
+        setShowDeleteConfirmModal(false);
+        setConvToManage(null);
+      }
+    } finally {
+      setIsProcessingConv(false);
+    }
+  };
 
   // Users search state
   const [userSearchResults, setUserSearchResults] = useState<Profile[]>([]);
@@ -713,17 +762,50 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab:
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
-                            maxWidth: '85%',
+                            maxWidth: '75%',
                           }}
                         >
                           {conv.last_message_text || (isGroup ? 'Group created' : 'Started a conversation')}
                         </p>
 
-                        {unread > 0 && (
-                          <span className="bottom-nav-badge" style={{ position: 'static' }}>
-                            {unread}
-                          </span>
-                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {unread > 0 && (
+                            <span className="bottom-nav-badge" style={{ position: 'static' }}>
+                              {unread}
+                            </span>
+                          )}
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setConvToManage(conv);
+                              setShowConvOptionsModal(true);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--text-muted)',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              borderRadius: '50%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                            title="Chat Options"
+                            aria-label="Chat options"
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.color = 'var(--text-primary)';
+                              e.currentTarget.style.background = 'var(--bg-card-hover)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.color = 'var(--text-muted)';
+                              e.currentTarget.style.background = 'transparent';
+                            }}
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -733,6 +815,111 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab:
           </>
         )}
       </div>
+
+      {/* Conversation Options Modal */}
+      <Modal
+        isOpen={showConvOptionsModal}
+        onClose={() => setShowConvOptionsModal(false)}
+        title={convToManage?.is_group ? (convToManage.title || 'Group Chat') : (convToManage?.other_member?.display_name || 'Chat Options')}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <button
+            onClick={() => {
+              setShowConvOptionsModal(false);
+              setShowClearConfirmModal(true);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '12px 14px',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--color-danger)',
+              fontSize: '0.92rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--bg-card-hover)')}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--bg-card)')}
+          >
+            <Trash2 size={18} /> Clear Chat (Wipe messages from phone)
+          </button>
+
+          <button
+            onClick={() => {
+              setShowConvOptionsModal(false);
+              setShowDeleteConfirmModal(true);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '12px 14px',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--color-danger)',
+              fontSize: '0.92rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--bg-card-hover)')}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--bg-card)')}
+          >
+            <Trash2 size={18} /> Delete Conversation
+          </button>
+
+          <OutlinedButton
+            variant="secondary"
+            onClick={() => setShowConvOptionsModal(false)}
+            style={{ marginTop: '8px' }}
+          >
+            Cancel
+          </OutlinedButton>
+        </div>
+      </Modal>
+
+      {/* Clear Chat Confirmation Modal */}
+      <Modal
+        isOpen={showClearConfirmModal}
+        onClose={() => setShowClearConfirmModal(false)}
+        title="Clear Chat?"
+      >
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5, marginBottom: '20px' }}>
+          Are you sure you want to clear this chat? All messages will be permanently removed from your phone immediately without waiting 30 days. Other participants will not be affected.
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <OutlinedButton variant="secondary" onClick={() => setShowClearConfirmModal(false)}>
+            Cancel
+          </OutlinedButton>
+          <OutlinedButton variant="danger" isLoading={isProcessingConv} onClick={handleConfirmClearChat}>
+            Clear Chat
+          </OutlinedButton>
+        </div>
+      </Modal>
+
+      {/* Delete Conversation Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteConfirmModal}
+        onClose={() => setShowDeleteConfirmModal(false)}
+        title="Delete Conversation?"
+      >
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5, marginBottom: '20px' }}>
+          Are you sure you want to remove this conversation from your chat list? All messages will be cleared from your phone.
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <OutlinedButton variant="secondary" onClick={() => setShowDeleteConfirmModal(false)}>
+            Cancel
+          </OutlinedButton>
+          <OutlinedButton variant="danger" isLoading={isProcessingConv} onClick={handleConfirmDeleteConv}>
+            Delete
+          </OutlinedButton>
+        </div>
+      </Modal>
 
       {/* Create Group Modal */}
       <CreateGroupModal

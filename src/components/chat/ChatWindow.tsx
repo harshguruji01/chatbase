@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { ArrowLeft, MoreVertical, ShieldAlert, Ban, User, Users, LogOut } from 'lucide-react';
+import { ArrowLeft, MoreVertical, ShieldAlert, Ban, User, Users, LogOut, Trash2 } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import { useAuth } from '../../context/AuthContext';
 import { Avatar } from '../common/Avatar';
@@ -21,13 +21,15 @@ interface ChatWindowProps {
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile }) => {
   const { user } = useAuth();
-  const { activeConversation, messages, deleteMessage, blockUser, isUserBlocked, isOtherTyping, typingUserName } = useChat();
+  const { activeConversation, messages, deleteMessage, clearChat, blockUser, isUserBlocked, isOtherTyping, typingUserName } = useChat();
   const { showToast } = useToast();
 
   const [showMenu, setShowMenu] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showGroupDetailsModal, setShowGroupDetailsModal] = useState(false);
+  const [showClearChatConfirm, setShowClearChatConfirm] = useState(false);
+  const [isClearingChat, setIsClearingChat] = useState(false);
   const [reportReason, setReportReason] = useState('spam');
   const [reportDetails, setReportDetails] = useState('');
   const [isReporting, setIsReporting] = useState(false);
@@ -41,6 +43,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
   // 1. Close menu if open (priority 50)
   useBackButton(() => setShowMenu(false), showMenu, 50);
   useBackButton(() => setShowGroupDetailsModal(false), showGroupDetailsModal, 60);
+  useBackButton(() => setShowClearChatConfirm(false), showClearChatConfirm, 65);
   // 2. Go back from active chat to conversation list (priority 20)
   useBackButton(() => {
     if (onBack) {
@@ -55,6 +58,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const handleConfirmClearChat = async () => {
+    if (!activeConversation) return;
+    setIsClearingChat(true);
+    try {
+      const { error } = await clearChat(activeConversation.id);
+      if (error) {
+        showToast(error, 'error');
+      } else {
+        showToast('Chat cleared from your device', 'success');
+        setShowClearChatConfirm(false);
+        setShowMenu(false);
+      }
+    } finally {
+      setIsClearingChat(false);
+    }
+  };
 
   const handleConfirmBlock = async () => {
     if (!otherUser) return;
@@ -363,6 +383,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
                   <button
                     onClick={() => {
                       setShowMenu(false);
+                      setShowClearChatConfirm(true);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 12px',
+                      fontSize: '0.85rem',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--color-danger)',
+                      cursor: 'pointer',
+                      borderRadius: 'var(--radius-sm)',
+                      textAlign: 'left',
+                    }}
+                    onMouseEnter={(e) => ((e.target as HTMLElement).style.background = 'var(--bg-card-hover)')}
+                    onMouseLeave={(e) => ((e.target as HTMLElement).style.background = 'transparent')}
+                  >
+                    <Trash2 size={15} /> Clear Chat
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
                       setShowGroupDetailsModal(true);
                     }}
                     style={{
@@ -408,6 +452,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
                     onMouseLeave={(e) => ((e.target as HTMLElement).style.background = 'transparent')}
                   >
                     <User size={15} /> View Profile
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      setShowClearChatConfirm(true);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 12px',
+                      fontSize: '0.85rem',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--color-danger)',
+                      cursor: 'pointer',
+                      borderRadius: 'var(--radius-sm)',
+                      textAlign: 'left',
+                    }}
+                    onMouseEnter={(e) => ((e.target as HTMLElement).style.background = 'var(--bg-card-hover)')}
+                    onMouseLeave={(e) => ((e.target as HTMLElement).style.background = 'transparent')}
+                  >
+                    <Trash2 size={15} /> Clear Chat
                   </button>
 
                   <button
@@ -521,6 +589,25 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
       ) : (
         <Composer />
       )}
+
+      {/* Clear Chat Confirmation Modal */}
+      <Modal
+        isOpen={showClearChatConfirm}
+        onClose={() => setShowClearChatConfirm(false)}
+        title="Clear Chat?"
+      >
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5, marginBottom: '20px' }}>
+          Are you sure you want to clear this chat? All messages in this conversation will be permanently removed from your phone immediately without waiting 30 days.
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <OutlinedButton variant="secondary" onClick={() => setShowClearChatConfirm(false)}>
+            Cancel
+          </OutlinedButton>
+          <OutlinedButton variant="danger" isLoading={isClearingChat} onClick={handleConfirmClearChat}>
+            Clear Chat
+          </OutlinedButton>
+        </div>
+      </Modal>
 
       {/* Block Confirmation Modal */}
       <Modal

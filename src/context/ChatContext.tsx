@@ -28,6 +28,8 @@ interface ChatContextType {
     duration?: number;
   }) => Promise<{ error?: string }>;
   deleteMessage: (messageId: string, forEveryone: boolean) => Promise<{ error?: string }>;
+  clearChat: (convId: string) => Promise<{ error?: string }>;
+  deleteConversation: (convId: string) => Promise<{ error?: string }>;
   toggleReaction: (messageId: string, emoji: string) => Promise<{ error?: string }>;
   refreshConversations: () => Promise<void>;
   blockUser: (targetUserId: string, reason?: string) => Promise<{ error?: string }>;
@@ -157,10 +159,22 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .order('created_at', { ascending: true });
 
       if (!error && data) {
-        // Filter out messages deleted for current user
-        const visibleMessages = (data as Message[]).filter(
-          (m) => !m.deleted_by_users?.includes(user.id)
-        );
+        // Fetch current user's membership to get authoritative cleared_at timestamp
+        const { data: memberData } = await supabase
+          .from('conversation_members')
+          .select('cleared_at')
+          .eq('conversation_id', convId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        const clearedAtMs = memberData?.cleared_at ? new Date(memberData.cleared_at).getTime() : 0;
+
+        // Filter out messages deleted individually or before cleared_at
+        const visibleMessages = (data as Message[]).filter((m) => {
+          if (m.deleted_by_users?.includes(user.id)) return false;
+          if (clearedAtMs > 0 && new Date(m.created_at).getTime() <= clearedAtMs) return false;
+          return true;
+        });
         setMessages(visibleMessages);
 
         // Mark unread as 0 in membership
@@ -820,6 +834,79 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Clear all messages in a conversation from current user's device
+  const clearChat = async (convId: string): Promise<{ error?: string }> => {
+    if (!user) return { error: 'Not authenticated' };
+
+    try {
+      const nowIso = new Date().toISOString();
+
+      // 1. Call database atomic stored procedure
+      const { error: rpcErr } = await supabase.rpc('clear_conversation_for_user', {
+        p_conv_id: convId,
+      });
+
+      if (rpcErr) {
+        // Fallback: update conversation_members directly
+        await supabase
+          .from('conversation_members')
+          .update({ cleared_at: nowIso })
+          .eq('conversation_id', convId)
+          .eq('user_id', user.id);
+      }
+
+      // 2. Wipe messages immediately from state if in active chat
+      if (activeConversation?.id === convId) {
+        setMessages([]);
+      }
+
+      // 3. Update preview in conversations list
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === convId
+            ? {
+                ...c,
+                last_message_text: '',
+                unread_count: 0,
+                members: c.members?.map((m) =>
+                  m.user_id === user.id ? { ...m, cleared_at: nowIso } : m
+                ),
+              }
+            : c
+        )
+      );
+
+      triggerHaptics(20);
+      return {};
+    } catch (err: any) {
+      return { error: err.message || 'Failed to clear chat.' };
+    }
+  };
+
+  // Delete conversation completely from current user's device
+  const deleteConversation = async (convId: string): Promise<{ error?: string }> => {
+    if (!user) return { error: 'Not authenticated' };
+
+    try {
+      // Clear all messages for this user first
+      await clearChat(convId);
+
+      // Deselect if active
+      if (activeConversation?.id === convId) {
+        setActiveConversation(null);
+        setMessages([]);
+      }
+
+      // Remove from conversations list
+      setConversations((prev) => prev.filter((c) => c.id !== convId));
+
+      triggerHaptics(20);
+      return {};
+    } catch (err: any) {
+      return { error: err.message || 'Failed to delete conversation.' };
+    }
+  };
+
   const blockUser = async (targetUserId: string, reason = '') => {
     if (!user) return { error: 'Not authenticated' };
     try {
@@ -917,6 +1004,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         leaveGroup,
         sendMessage,
         deleteMessage,
+        clearChat,
+        deleteConversation,
         toggleReaction,
         refreshConversations: fetchConversations,
         blockUser,
