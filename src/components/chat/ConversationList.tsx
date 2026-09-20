@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Search, MessageSquare, UserPlus } from 'lucide-react';
+import { Search, MessageSquare, UserPlus, Users } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Avatar } from '../common/Avatar';
 import { formatRelativeTime } from '../../lib/utils';
 import type { TabType } from '../../types';
 import { BrandHeader } from '../common/BrandHeader';
+import { CreateGroupModal } from './CreateGroupModal';
 
 interface ConversationListProps {
   onSelectTab: (tab: TabType) => void;
@@ -15,10 +16,17 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab 
   const { conversations, activeConversation, selectConversation, isLoadingConversations } = useChat();
   const { t } = useLanguage();
   const [searchFilter, setSearchFilter] = useState('');
+  const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
 
   const filteredConversations = conversations.filter((c) => {
     if (!searchFilter.trim()) return true;
     const q = searchFilter.toLowerCase();
+    if (c.is_group) {
+      return (
+        c.title?.toLowerCase().includes(q) ||
+        c.last_message_text?.toLowerCase().includes(q)
+      );
+    }
     const other = c.other_member;
     return (
       other?.display_name?.toLowerCase().includes(q) ||
@@ -46,20 +54,47 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab 
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <BrandHeader size="sm" showSubtitle={false} />
-          {totalUnread > 0 && (
-            <span
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* New Group Button */}
+            <button
+              onClick={() => setIsCreateGroupOpen(true)}
               style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                background: 'var(--color-primary)',
-                color: '#fff',
-                padding: '2px 8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
                 borderRadius: 'var(--radius-full)',
+                background: 'linear-gradient(135deg, var(--color-primary), #EC4899)',
+                color: '#fff',
+                border: 'none',
+                fontWeight: 600,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
+                transition: 'transform 0.15s ease',
               }}
+              title="Create New Group Chat"
             >
-              {totalUnread} new
-            </span>
-          )}
+              <Users size={14} />
+              <span>+ Group</span>
+            </button>
+
+            {totalUnread > 0 && (
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  background: 'var(--color-primary)',
+                  color: '#fff',
+                  padding: '2px 8px',
+                  borderRadius: 'var(--radius-full)',
+                }}
+              >
+                {totalUnread} new
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Search input */}
@@ -145,9 +180,12 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab 
           </div>
         ) : (
           filteredConversations.map((conv) => {
+            const isGroup = conv.is_group;
             const other = conv.other_member;
             const isSelected = activeConversation?.id === conv.id;
             const unread = conv.unread_count || 0;
+            const displayTitle = isGroup ? (conv.title || 'Group Chat') : (other?.display_name || 'User');
+            const memberCount = isGroup ? (conv.members?.length || 0) : 0;
 
             return (
               <div
@@ -165,27 +203,66 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab 
                   transition: 'background var(--transition-fast)',
                 }}
               >
-                <Avatar
-                  src={other?.avatar_url}
-                  name={other?.display_name || 'User'}
-                  size="lg"
-                  isOnline={other?.show_online_status}
-                />
+                {/* Avatar: Group or User */}
+                {isGroup ? (
+                  <div
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      background: conv.avatar_url
+                        ? `url(${conv.avatar_url}) center / cover no-repeat`
+                        : 'linear-gradient(135deg, #6366F1 0%, #EC4899 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fff',
+                      flexShrink: 0,
+                      boxShadow: '0 2px 6px rgba(99, 102, 241, 0.25)',
+                    }}
+                  >
+                    {!conv.avatar_url && <Users size={22} />}
+                  </div>
+                ) : (
+                  <Avatar
+                    src={other?.avatar_url}
+                    name={other?.display_name || 'User'}
+                    size="lg"
+                    isOnline={other?.show_online_status}
+                  />
+                )}
 
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
-                    <span
-                      style={{
-                        fontWeight: unread > 0 ? 700 : 600,
-                        fontSize: '0.98rem',
-                        color: 'var(--text-primary)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {other?.display_name}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                      <span
+                        style={{
+                          fontWeight: unread > 0 ? 700 : 600,
+                          fontSize: '0.98rem',
+                          color: 'var(--text-primary)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {displayTitle}
+                      </span>
+                      {isGroup && (
+                        <span
+                          style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 600,
+                            padding: '1px 6px',
+                            borderRadius: 'var(--radius-full)',
+                            background: 'var(--color-primary-light)',
+                            color: 'var(--color-primary)',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {memberCount} members
+                        </span>
+                      )}
+                    </div>
 
                     {conv.last_message_at && (
                       <span style={{ fontSize: '0.75rem', color: unread > 0 ? 'var(--color-primary)' : 'var(--text-muted)', flexShrink: 0, fontWeight: unread > 0 ? 700 : 400 }}>
@@ -207,7 +284,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab 
                         maxWidth: '85%',
                       }}
                     >
-                      {conv.last_message_text || 'Started a conversation'}
+                      {conv.last_message_text || (isGroup ? 'Group created' : 'Started a conversation')}
                     </p>
 
                     {unread > 0 && (
@@ -222,6 +299,12 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab 
           })
         )}
       </div>
+
+      {/* Create Group Modal */}
+      <CreateGroupModal
+        isOpen={isCreateGroupOpen}
+        onClose={() => setIsCreateGroupOpen(false)}
+      />
     </div>
   );
 };

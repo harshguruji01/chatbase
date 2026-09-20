@@ -12,9 +12,14 @@ interface ChatContextType {
   isLoadingMessages: boolean;
   uploadProgress: number | null;
   isOtherTyping: boolean;
+  typingUserName?: string;
   broadcastTyping: (isTyping: boolean) => void;
   selectConversation: (conversation: Conversation | null) => void;
   startChatWithUser: (targetUser: Profile) => Promise<{ conversationId?: string; error?: string }>;
+  createGroup: (title: string, avatarFile: File | null, memberIds: string[]) => Promise<{ conversationId?: string; error?: string }>;
+  updateGroupInfo: (convId: string, title: string, avatarFile: File | null) => Promise<{ error?: string }>;
+  addGroupMembers: (convId: string, memberIds: string[]) => Promise<{ error?: string }>;
+  leaveGroup: (convId: string) => Promise<{ error?: string }>;
   sendMessage: (options: {
     type: MessageType;
     content?: string;
@@ -33,7 +38,7 @@ interface ChatContextType {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -42,6 +47,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [blockedUserIds, setBlockedUserIds] = useState<string[]>([]);
   const [isOtherTyping, setIsOtherTyping] = useState<boolean>(false);
+  const [typingUserName, setTypingUserName] = useState<string>('');
 
   const activeChannelRef = useRef<any>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -90,29 +96,47 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Fetch other members for these conversations
-      const { data: otherMembersData } = await supabase
+      // Fetch all members for these conversations
+      const { data: allMembersData } = await supabase
         .from('conversation_members')
-        .select('conversation_id, user_id, profiles:user_id(*)')
-        .in('conversation_id', convIds)
-        .neq('user_id', user.id);
+        .select('id, conversation_id, user_id, unread_count, last_read_at, cleared_at, created_at, role, profiles:user_id(*)')
+        .in('conversation_id', convIds);
 
-      const otherMap = new Map<string, Profile>();
-      if (otherMembersData) {
-        otherMembersData.forEach((row: any) => {
-          if (row.profiles) {
-            otherMap.set(row.conversation_id, row.profiles as Profile);
-          }
+      const convMembersMap = new Map<string, any[]>();
+      if (allMembersData) {
+        allMembersData.forEach((row: any) => {
+          const list = convMembersMap.get(row.conversation_id) || [];
+          list.push({
+            ...row,
+            profile: row.profiles as Profile,
+          });
+          convMembersMap.set(row.conversation_id, list);
         });
       }
 
-      const enriched: Conversation[] = convData.map((c) => ({
-        ...c,
-        other_member: otherMap.get(c.id),
-        unread_count: unreadMap.get(c.id) || 0,
-      }));
+      const enriched: Conversation[] = convData.map((c) => {
+        const membersList = convMembersMap.get(c.id) || [];
+        const otherMember = membersList.find((m) => m.user_id !== user.id)?.profile;
+
+        return {
+          ...c,
+          is_group: Boolean(c.is_group),
+          title: c.title || (c.is_group ? 'Group Chat' : otherMember?.display_name || 'Chat'),
+          avatar_url: c.avatar_url || (c.is_group ? null : otherMember?.avatar_url),
+          other_member: otherMember,
+          members: membersList,
+          unread_count: unreadMap.get(c.id) || 0,
+        };
+      });
 
       setConversations(enriched);
+
+      // Also keep activeConversation updated if currently selected
+      setActiveConversation((current) => {
+        if (!current) return null;
+        const fresh = enriched.find((c) => c.id === current.id);
+        return fresh ? { ...current, ...fresh } : current;
+      });
     } catch (err) {
       console.error('Error fetching conversations:', err);
     } finally {
@@ -178,8 +202,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       setMessages([]);
       setIsOtherTyping(false);
+      setTypingUserName('');
     }
-  }, [activeConversation, fetchMessages]);
+  }, [activeConversation?.id, fetchMessages]);
 
   // Real-time listener for incoming messages, updates, and typing broadcast
   useEffect(() => {
@@ -251,10 +276,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           payload.user_id !== user.id
         ) {
           setIsOtherTyping(Boolean(payload.is_typing));
+          setTypingUserName(payload.user_name || '');
           if (payload.is_typing) {
             if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
             typingTimerRef.current = setTimeout(() => {
               setIsOtherTyping(false);
+              setTypingUserName('');
             }, 3500);
           }
         }
@@ -279,6 +306,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           payload: {
             conversation_id: activeConversation.id,
             user_id: user.id,
+            user_name: profile?.display_name || user.email?.split('@')[0] || 'Member',
             is_typing: isTyping,
           },
         });
@@ -286,16 +314,17 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn('Failed to broadcast typing status:', err);
       }
     },
-    [user, activeConversation]
+    [user, profile, activeConversation]
   );
 
   const selectConversation = (conversation: Conversation | null) => {
     setActiveConversation(conversation);
     setIsOtherTyping(false);
+    setTypingUserName('');
   };
 
-  // Find or create a conversation with a user
-  const startChatWithUser = async (targetUser: Profile) => {
+  // Find or create a direct conversation with a user atomically via Postgres RPC
+  const startChatWithUser = async (targetUser: Profile): Promise<{ conversationId?: string; error?: string }> => {
     if (!user) return { error: 'Not authenticated.' };
     if (user.id === targetUser.id) return { error: 'Cannot chat with yourself.' };
 
@@ -305,70 +334,223 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Check if conversation already exists between these 2 users
-      const { data: myConvs } = await supabase
-        .from('conversation_members')
-        .select('conversation_id')
-        .eq('user_id', user.id);
+      // 1. Call atomic database RPC function (bypasses RLS race condition)
+      const { data: convId, error: rpcErr } = await supabase.rpc('get_or_create_direct_conversation', {
+        target_user_id: targetUser.id,
+      });
 
-      if (myConvs && myConvs.length > 0) {
-        const myConvIds = myConvs.map((c) => c.conversation_id);
-        const { data: commonConvs } = await supabase
-          .from('conversation_members')
-          .select('conversation_id')
-          .eq('user_id', targetUser.id)
-          .in('conversation_id', myConvIds);
-
-        if (commonConvs && commonConvs.length > 0) {
-          const existingId = commonConvs[0].conversation_id;
-          const { data: existingConv } = await supabase
-            .from('conversations')
-            .select('*')
-            .eq('id', existingId)
-            .single();
-
-          if (existingConv) {
-            const enrichedConv: Conversation = {
-              ...existingConv,
-              other_member: targetUser,
-              unread_count: 0,
-            };
-            setActiveConversation(enrichedConv);
-            await fetchConversations();
-            return { conversationId: existingId };
-          }
-        }
+      if (rpcErr || !convId) {
+        console.error('RPC direct chat error:', rpcErr);
+        return { error: rpcErr?.message || 'Could not start conversation.' };
       }
 
-      // Create new conversation
-      const { data: newConv, error: newConvErr } = await supabase
+      // 2. Fetch the conversation row
+      const { data: convData } = await supabase
         .from('conversations')
-        .insert({
-          last_message_text: '',
-          last_message_at: new Date().toISOString(),
-        })
-        .select()
+        .select('*')
+        .eq('id', convId)
         .single();
 
-      if (newConvErr || !newConv) {
-        return { error: newConvErr?.message || 'Could not start conversation.' };
-      }
-
-      // Add both members
-      await supabase.from('conversation_members').insert([
-        { conversation_id: newConv.id, user_id: user.id },
-        { conversation_id: newConv.id, user_id: targetUser.id },
-      ]);
-
       const enrichedConv: Conversation = {
-        ...newConv,
+        ...(convData || {
+          id: convId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          is_group: false,
+        }),
+        is_group: false,
         other_member: targetUser,
         unread_count: 0,
       };
 
       setActiveConversation(enrichedConv);
       await fetchConversations();
-      return { conversationId: newConv.id };
+      return { conversationId: convId };
+    } catch (err: any) {
+      console.error('startChatWithUser exception:', err);
+      return { error: err.message || 'Failed to start conversation' };
+    }
+  };
+
+  // Create an Instagram-style Group Chat
+  const createGroup = async (
+    title: string,
+    avatarFile: File | null,
+    memberIds: string[]
+  ): Promise<{ conversationId?: string; error?: string }> => {
+    if (!user) return { error: 'Not authenticated.' };
+    const cleanTitle = title.trim();
+    if (!cleanTitle) return { error: 'Group title is required.' };
+
+    try {
+      let avatarUrl: string | null = null;
+      if (avatarFile) {
+        const ext = avatarFile.name.split('.').pop() || 'jpg';
+        const filePath = `group-avatars/${user.id}_${Date.now()}.${ext}`;
+        const { data: uploadData, error: uploadErr } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, avatarFile, { upsert: true });
+
+        if (!uploadErr && uploadData) {
+          const { data: publicUrlData } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(filePath);
+          avatarUrl = publicUrlData.publicUrl;
+        }
+      }
+
+      const { data: convId, error: rpcErr } = await supabase.rpc('create_group_conversation', {
+        p_title: cleanTitle,
+        p_avatar_url: avatarUrl,
+        p_member_ids: memberIds,
+      });
+
+      if (rpcErr || !convId) {
+        return { error: rpcErr?.message || 'Failed to create group.' };
+      }
+
+      // Fetch group conversation
+      const { data: convData } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('id', convId)
+        .single();
+
+      // Fetch all member profiles
+      const { data: membersData } = await supabase
+        .from('conversation_members')
+        .select('*, profiles:user_id(*)')
+        .eq('conversation_id', convId);
+
+      const membersList = (membersData || []).map((m: any) => ({
+        ...m,
+        profile: m.profiles as Profile,
+      }));
+
+      const enrichedConv: Conversation = {
+        ...(convData || {
+          id: convId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          is_group: true,
+          title: cleanTitle,
+          avatar_url: avatarUrl,
+        }),
+        is_group: true,
+        title: cleanTitle,
+        avatar_url: avatarUrl,
+        members: membersList,
+        unread_count: 0,
+      };
+
+      setActiveConversation(enrichedConv);
+      await fetchConversations();
+      return { conversationId: convId };
+    } catch (err: any) {
+      return { error: err.message || 'Failed to create group.' };
+    }
+  };
+
+  // Update Group Info (Name or Icon)
+  const updateGroupInfo = async (
+    convId: string,
+    title: string,
+    avatarFile: File | null
+  ): Promise<{ error?: string }> => {
+    try {
+      let avatarUrl: string | null = null;
+      if (avatarFile) {
+        const ext = avatarFile.name.split('.').pop() || 'jpg';
+        const filePath = `group-avatars/${Date.now()}.${ext}`;
+        const { data: uploadData, error: uploadErr } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, avatarFile, { upsert: true });
+
+        if (!uploadErr && uploadData) {
+          const { data: publicUrlData } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(filePath);
+          avatarUrl = publicUrlData.publicUrl;
+        }
+      }
+
+      const { error } = await supabase.rpc('update_group_info', {
+        p_conv_id: convId,
+        p_title: title.trim(),
+        p_avatar_url: avatarUrl,
+      });
+
+      if (error) return { error: error.message };
+
+      if (activeConversation?.id === convId) {
+        setActiveConversation((prev) =>
+          prev
+            ? {
+                ...prev,
+                title: title.trim() || prev.title,
+                avatar_url: avatarUrl || prev.avatar_url,
+              }
+            : null
+        );
+      }
+
+      await fetchConversations();
+      return {};
+    } catch (err: any) {
+      return { error: err.message };
+    }
+  };
+
+  // Add members to group
+  const addGroupMembers = async (
+    convId: string,
+    memberIds: string[]
+  ): Promise<{ error?: string }> => {
+    try {
+      const { error } = await supabase.rpc('add_group_members', {
+        p_conv_id: convId,
+        p_new_member_ids: memberIds,
+      });
+
+      if (error) return { error: error.message };
+
+      // Refresh members
+      const { data: membersData } = await supabase
+        .from('conversation_members')
+        .select('*, profiles:user_id(*)')
+        .eq('conversation_id', convId);
+
+      const membersList = (membersData || []).map((m: any) => ({
+        ...m,
+        profile: m.profiles as Profile,
+      }));
+
+      if (activeConversation?.id === convId) {
+        setActiveConversation((prev) => (prev ? { ...prev, members: membersList } : null));
+      }
+
+      await fetchConversations();
+      return {};
+    } catch (err: any) {
+      return { error: err.message };
+    }
+  };
+
+  // Leave group
+  const leaveGroup = async (convId: string): Promise<{ error?: string }> => {
+    try {
+      const { error } = await supabase.rpc('leave_group', {
+        p_conv_id: convId,
+      });
+
+      if (error) return { error: error.message };
+
+      if (activeConversation?.id === convId) {
+        setActiveConversation(null);
+      }
+
+      await fetchConversations();
+      return {};
     } catch (err: any) {
       return { error: err.message };
     }
@@ -389,7 +571,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user || !activeConversation) return { error: 'No active conversation.' };
 
     const targetUserId = activeConversation.other_member?.id;
-    if (targetUserId && blockedUserIds.includes(targetUserId)) {
+    if (!activeConversation.is_group && targetUserId && blockedUserIds.includes(targetUserId)) {
       return { error: 'You have blocked this user. Unblock them first to send messages.' };
     }
 
@@ -639,9 +821,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoadingMessages,
         uploadProgress,
         isOtherTyping,
+        typingUserName,
         broadcastTyping,
         selectConversation,
         startChatWithUser,
+        createGroup,
+        updateGroupInfo,
+        addGroupMembers,
+        leaveGroup,
         sendMessage,
         deleteMessage,
         toggleReaction,

@@ -195,6 +195,7 @@
   object-fit: cover;
 }
 
+.avatar-xs { width: 24px; height: 24px; font-size: 0.65rem; }
 .avatar-sm { width: 34px; height: 34px; font-size: 0.8rem; }
 .avatar-md { width: 46px; height: 46px; font-size: 1.1rem; }
 .avatar-lg { width: 64px; height: 64px; font-size: 1.5rem; }

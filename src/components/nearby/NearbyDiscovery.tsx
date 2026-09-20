@@ -25,6 +25,7 @@ export const NearbyDiscovery: React.FC<NearbyDiscoveryProps> = ({
   const [nearbyUsers, setNearbyUsers] = useState<NearbyUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(false);
+  const [startingChatUserId, setStartingChatUserId] = useState<string | null>(null);
 
   const fetchNearby = async () => {
     if (!user) return;
@@ -106,11 +107,16 @@ export const NearbyDiscovery: React.FC<NearbyDiscoveryProps> = ({
   };
 
   const handleChat = async (targetUser: NearbyUser) => {
-    const { error } = await startChatWithUser(targetUser as any);
-    if (error) {
-      showToast(error, 'error');
-    } else {
-      onStartChat();
+    setStartingChatUserId(targetUser.id);
+    try {
+      const { error } = await startChatWithUser(targetUser as any);
+      if (error) {
+        showToast(error, 'error');
+      } else {
+        onStartChat();
+      }
+    } finally {
+      setStartingChatUserId(null);
     }
   };
 
@@ -291,6 +297,7 @@ export const NearbyDiscovery: React.FC<NearbyDiscoveryProps> = ({
                     size="sm"
                     style={{ flex: 1 }}
                     onClick={() => handleChat(u)}
+                    isLoading={startingChatUserId === u.id}
                     icon={<MessageCircle size={14} />}
                   >
                     Chat

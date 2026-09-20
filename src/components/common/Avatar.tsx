@@ -3,7 +3,7 @@ import React from 'react';
 interface AvatarProps {
   src?: string | null;
   name?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   isOnline?: boolean;
   className?: string;
   onClick?: () => void;

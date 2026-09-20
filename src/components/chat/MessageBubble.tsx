@@ -21,11 +21,13 @@ import {
 import { useToast } from '../common/Toast';
 import { useChat } from '../../context/ChatContext';
 import { useAuth } from '../../context/AuthContext';
+import { Avatar } from '../common/Avatar';
 import { ImageLightboxModal } from './ImageLightboxModal';
 
 interface MessageBubbleProps {
   message: Message;
   isOutgoing: boolean;
+  isGroup?: boolean;
   onDeleteMessage: (messageId: string, forEveryone: boolean) => void;
 }
 
@@ -34,6 +36,7 @@ const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '🔥', '👏'];
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   isOutgoing,
+  isGroup = false,
   onDeleteMessage,
 }) => {
   const { user } = useAuth();
@@ -183,6 +186,27 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 {emoji}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Sender display in Group Chat for incoming messages */}
+        {isGroup && !isOutgoing && message.sender && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '3px',
+              paddingLeft: '6px',
+            }}
+          >
+            <Avatar src={message.sender.avatar_url} name={message.sender.display_name} size="xs" />
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+              {message.sender.display_name}
+            </span>
+            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+              @{message.sender.username}
+            </span>
           </div>
         )}
 

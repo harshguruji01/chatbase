@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { ArrowLeft, MoreVertical, ShieldAlert, Ban, User } from 'lucide-react';
+import { ArrowLeft, MoreVertical, ShieldAlert, Ban, User, Users, LogOut } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import { useAuth } from '../../context/AuthContext';
 import { Avatar } from '../common/Avatar';
@@ -11,6 +11,7 @@ import { useToast } from '../common/Toast';
 import { formatRelativeTime } from '../../lib/utils';
 import { supabase } from '../../lib/supabase';
 import { useBackButton } from '../../lib/useBackButton';
+import { GroupDetailsModal } from './GroupDetailsModal';
 import brandLogo from '../../assets/chatbase.png';
 
 interface ChatWindowProps {
@@ -20,19 +21,26 @@ interface ChatWindowProps {
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile }) => {
   const { user } = useAuth();
-  const { activeConversation, messages, deleteMessage, blockUser, isUserBlocked, isOtherTyping } = useChat();
+  const { activeConversation, messages, deleteMessage, blockUser, isUserBlocked, isOtherTyping, typingUserName } = useChat();
   const { showToast } = useToast();
 
   const [showMenu, setShowMenu] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showGroupDetailsModal, setShowGroupDetailsModal] = useState(false);
   const [reportReason, setReportReason] = useState('spam');
   const [reportDetails, setReportDetails] = useState('');
   const [isReporting, setIsReporting] = useState(false);
 
+  const isGroup = Boolean(activeConversation?.is_group);
+  const otherUser = activeConversation?.other_member;
+  const isBlocked = !isGroup && otherUser ? isUserBlocked(otherUser.id) : false;
+  const groupMembersCount = activeConversation?.members?.length || 0;
+
   // Hardware/Browser Back Handlers:
   // 1. Close menu if open (priority 50)
   useBackButton(() => setShowMenu(false), showMenu, 50);
+  useBackButton(() => setShowGroupDetailsModal(false), showGroupDetailsModal, 60);
   // 2. Go back from active chat to conversation list (priority 20)
   useBackButton(() => {
     if (onBack) {
@@ -42,9 +50,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
   }, Boolean(onBack), 20);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const otherUser = activeConversation?.other_member;
-  const isBlocked = otherUser ? isUserBlocked(otherUser.id) : false;
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -89,7 +94,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
     }
   };
 
-  if (!activeConversation || !otherUser) {
+  if (!activeConversation || (!isGroup && !otherUser)) {
     return (
       <div
         style={{
@@ -214,46 +219,92 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
             </button>
           )}
 
-          <div
-            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-            onClick={() => onViewProfile && onViewProfile(otherUser.id)}
-          >
-            <Avatar
-              src={otherUser.avatar_url}
-              name={otherUser.display_name}
-              size="md"
-              isOnline={otherUser.show_online_status}
-            />
-
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.98rem', color: 'var(--text-primary)' }}>
-                  {otherUser.display_name}
-                </span>
-                <span className="user-code-badge" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
-                  {otherUser.user_code}
-                </span>
+          {isGroup ? (
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', flex: 1, minWidth: 0 }}
+              onClick={() => setShowGroupDetailsModal(true)}
+            >
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  background: activeConversation.avatar_url
+                    ? `url(${activeConversation.avatar_url}) center / cover no-repeat`
+                    : 'linear-gradient(135deg, #6366F1 0%, #EC4899 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  flexShrink: 0,
+                  boxShadow: '0 2px 6px rgba(99, 102, 241, 0.25)',
+                }}
+              >
+                {!activeConversation.avatar_url && <Users size={20} />}
               </div>
-              {isOtherTyping ? (
-                <span
-                  style={{
-                    fontSize: '0.78rem',
-                    color: 'var(--color-primary)',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  typing...
-                </span>
-              ) : (
-                <span style={{ fontSize: '0.78rem', color: otherUser.show_online_status ? 'var(--color-success)' : 'var(--text-muted)' }}>
-                  {otherUser.show_online_status ? 'Online' : `Last active ${formatRelativeTime(otherUser.last_seen)}`}
-                </span>
-              )}
+
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.98rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {activeConversation.title || 'Group Chat'}
+                  </span>
+                  <span className="user-code-badge" style={{ fontSize: '0.65rem', padding: '1px 5px' }}>
+                    Group
+                  </span>
+                </div>
+                {isOtherTyping ? (
+                  <span style={{ fontSize: '0.78rem', color: 'var(--color-primary)', fontWeight: 700 }}>
+                    {typingUserName ? `${typingUserName} is typing...` : 'typing...'}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    {groupMembersCount} members • Tap for details
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', flex: 1, minWidth: 0 }}
+              onClick={() => onViewProfile && otherUser && onViewProfile(otherUser.id)}
+            >
+              <Avatar
+                src={otherUser?.avatar_url}
+                name={otherUser?.display_name || 'User'}
+                size="md"
+                isOnline={otherUser?.show_online_status}
+              />
+
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.98rem', color: 'var(--text-primary)' }}>
+                    {otherUser?.display_name}
+                  </span>
+                  <span className="user-code-badge" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
+                    {otherUser?.user_code}
+                  </span>
+                </div>
+                {isOtherTyping ? (
+                  <span
+                    style={{
+                      fontSize: '0.78rem',
+                      color: 'var(--color-primary)',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    typing...
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.78rem', color: otherUser?.show_online_status ? 'var(--color-success)' : 'var(--text-muted)' }}>
+                    {otherUser?.show_online_status ? 'Online' : `Last active ${formatRelativeTime(otherUser?.last_seen || '')}`}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Header Actions Menu */}
@@ -283,77 +334,131 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
                 gap: '2px',
               }}
             >
-              <button
-                onClick={() => {
-                  setShowMenu(false);
-                  if (onViewProfile) onViewProfile(otherUser.id);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 12px',
-                  fontSize: '0.85rem',
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-primary)',
-                  cursor: 'pointer',
-                  borderRadius: 'var(--radius-sm)',
-                  textAlign: 'left',
-                }}
-                onMouseEnter={(e) => ((e.target as HTMLElement).style.background = 'var(--bg-card-hover)')}
-                onMouseLeave={(e) => ((e.target as HTMLElement).style.background = 'transparent')}
-              >
-                <User size={15} /> View Profile
-              </button>
+              {isGroup ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      setShowGroupDetailsModal(true);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 12px',
+                      fontSize: '0.85rem',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-primary)',
+                      cursor: 'pointer',
+                      borderRadius: 'var(--radius-sm)',
+                      textAlign: 'left',
+                    }}
+                    onMouseEnter={(e) => ((e.target as HTMLElement).style.background = 'var(--bg-card-hover)')}
+                    onMouseLeave={(e) => ((e.target as HTMLElement).style.background = 'transparent')}
+                  >
+                    <Users size={15} /> Group Details
+                  </button>
 
-              <button
-                onClick={() => {
-                  setShowMenu(false);
-                  setShowReportModal(true);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 12px',
-                  fontSize: '0.85rem',
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-primary)',
-                  cursor: 'pointer',
-                  borderRadius: 'var(--radius-sm)',
-                  textAlign: 'left',
-                }}
-                onMouseEnter={(e) => ((e.target as HTMLElement).style.background = 'var(--bg-card-hover)')}
-                onMouseLeave={(e) => ((e.target as HTMLElement).style.background = 'transparent')}
-              >
-                <ShieldAlert size={15} color="var(--color-warning)" /> Report User
-              </button>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      setShowGroupDetailsModal(true);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 12px',
+                      fontSize: '0.85rem',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--color-danger)',
+                      cursor: 'pointer',
+                      borderRadius: 'var(--radius-sm)',
+                      textAlign: 'left',
+                    }}
+                    onMouseEnter={(e) => ((e.target as HTMLElement).style.background = 'var(--bg-card-hover)')}
+                    onMouseLeave={(e) => ((e.target as HTMLElement).style.background = 'transparent')}
+                  >
+                    <LogOut size={15} /> Leave Group
+                  </button>
+                </>
+              ) : otherUser ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      if (onViewProfile) onViewProfile(otherUser.id);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 12px',
+                      fontSize: '0.85rem',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-primary)',
+                      cursor: 'pointer',
+                      borderRadius: 'var(--radius-sm)',
+                      textAlign: 'left',
+                    }}
+                    onMouseEnter={(e) => ((e.target as HTMLElement).style.background = 'var(--bg-card-hover)')}
+                    onMouseLeave={(e) => ((e.target as HTMLElement).style.background = 'transparent')}
+                  >
+                    <User size={15} /> View Profile
+                  </button>
 
-              <button
-                onClick={() => {
-                  setShowMenu(false);
-                  setShowBlockConfirm(true);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 12px',
-                  fontSize: '0.85rem',
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--color-danger)',
-                  cursor: 'pointer',
-                  borderRadius: 'var(--radius-sm)',
-                  textAlign: 'left',
-                }}
-                onMouseEnter={(e) => ((e.target as HTMLElement).style.background = 'var(--bg-card-hover)')}
-                onMouseLeave={(e) => ((e.target as HTMLElement).style.background = 'transparent')}
-              >
-                <Ban size={15} /> Block User
-              </button>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      setShowReportModal(true);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 12px',
+                      fontSize: '0.85rem',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-primary)',
+                      cursor: 'pointer',
+                      borderRadius: 'var(--radius-sm)',
+                      textAlign: 'left',
+                    }}
+                    onMouseEnter={(e) => ((e.target as HTMLElement).style.background = 'var(--bg-card-hover)')}
+                    onMouseLeave={(e) => ((e.target as HTMLElement).style.background = 'transparent')}
+                  >
+                    <ShieldAlert size={15} color="var(--color-warning)" /> Report User
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      setShowBlockConfirm(true);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 12px',
+                      fontSize: '0.85rem',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--color-danger)',
+                      cursor: 'pointer',
+                      borderRadius: 'var(--radius-sm)',
+                      textAlign: 'left',
+                    }}
+                    onMouseEnter={(e) => ((e.target as HTMLElement).style.background = 'var(--bg-card-hover)')}
+                    onMouseLeave={(e) => ((e.target as HTMLElement).style.background = 'transparent')}
+                  >
+                    <Ban size={15} /> Block User
+                  </button>
+                </>
+              ) : null}
             </div>
           )}
         </div>
@@ -391,6 +496,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
             key={msg.id}
             message={msg}
             isOutgoing={msg.sender_id === user?.id}
+            isGroup={isGroup}
             onDeleteMessage={deleteMessage}
           />
         ))}
@@ -420,7 +526,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
       <Modal
         isOpen={showBlockConfirm}
         onClose={() => setShowBlockConfirm(false)}
-        title={`Block @${otherUser.username}?`}
+        title={`Block @${otherUser?.username || 'User'}?`}
       >
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5, marginBottom: '20px' }}>
           Blocked users will no longer be able to message you, find you in nearby discovery, or follow you. Are you sure you want to block this user?
@@ -479,6 +585,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
           </div>
         </form>
       </Modal>
+
+      {/* Group Details Modal */}
+      {isGroup && (
+        <GroupDetailsModal
+          isOpen={showGroupDetailsModal}
+          onClose={() => setShowGroupDetailsModal(false)}
+          conversation={activeConversation}
+          onViewProfile={onViewProfile}
+          onLeaveSuccess={onBack}
+        />
+      )}
     </div>
   );
 };

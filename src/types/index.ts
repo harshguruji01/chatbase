@@ -57,8 +57,13 @@ export interface Conversation {
   updated_at: string;
   last_message_text?: string;
   last_message_at?: string;
-  // enriched with other member details
+  is_group?: boolean;
+  title?: string;
+  avatar_url?: string | null;
+  created_by?: string | null;
+  // enriched with other member details (for 1-on-1) or member list (for group)
   other_member?: Profile;
+  members?: (ConversationMember & { profile?: Profile })[];
   unread_count?: number;
 }
 
@@ -70,6 +75,8 @@ export interface ConversationMember {
   last_read_at: string;
   cleared_at?: string | null;
   created_at: string;
+  role?: 'admin' | 'member';
+  profile?: Profile;
 }
 
 export type MessageType = 'text' | 'emoji' | 'voice' | 'video' | 'image' | 'like';

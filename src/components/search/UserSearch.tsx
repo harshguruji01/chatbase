@@ -25,6 +25,7 @@ export const UserSearch: React.FC<UserSearchProps> = ({ onStartChat, onViewProfi
   const [results, setResults] = useState<(Profile & { is_following?: boolean })[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [startingChatUserId, setStartingChatUserId] = useState<string | null>(null);
 
   // If user has entered a search query, back button clears the query first
   useBackButton(
@@ -129,11 +130,16 @@ export const UserSearch: React.FC<UserSearchProps> = ({ onStartChat, onViewProfi
   };
 
   const handleChat = async (targetUser: Profile) => {
-    const { error } = await startChatWithUser(targetUser);
-    if (error) {
-      showToast(error, 'error');
-    } else {
-      onStartChat();
+    setStartingChatUserId(targetUser.id);
+    try {
+      const { error } = await startChatWithUser(targetUser);
+      if (error) {
+        showToast(error, 'error');
+      } else {
+        onStartChat();
+      }
+    } finally {
+      setStartingChatUserId(null);
     }
   };
 
@@ -276,6 +282,7 @@ export const UserSearch: React.FC<UserSearchProps> = ({ onStartChat, onViewProfi
                           variant="secondary"
                           size="sm"
                           onClick={() => handleChat(u)}
+                          isLoading={startingChatUserId === u.id}
                           icon={<MessageCircle size={14} />}
                         >
                           Chat
