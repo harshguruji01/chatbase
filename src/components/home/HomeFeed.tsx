@@ -14,6 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { OutlinedButton } from '../common/OutlinedButton';
 import { BrandHeader } from '../common/BrandHeader';
+import { NativeFeedAd } from '../ads/NativeFeedAd';
 
 interface PostItem {
   id: string;
@@ -319,12 +320,12 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onStartChat, onExploreUsers 
 
         {/* Feed Posts */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingBottom: '30px' }}>
-          {filteredPosts.map((post) => {
+          {filteredPosts.map((post, idx) => {
             const isLiked = likedPosts[post.id];
             return (
-              <div
-                key={post.id}
-                className="card feed-card"
+              <React.Fragment key={post.id}>
+                <div
+                  className="card feed-card"
                 style={{
                   padding: '18px 20px',
                   borderRadius: 'var(--radius-md)',
@@ -423,9 +424,12 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onStartChat, onExploreUsers 
                   </button>
                 </div>
               </div>
-            );
-          })}
-        </div>
+              {/* Sponsored Ad Under Each Content Post */}
+              <NativeFeedAd index={idx} />
+            </React.Fragment>
+          );
+        })}
+      </div>
       </div>
     </div>
   );

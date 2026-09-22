@@ -64,9 +64,7 @@ if (!fs.existsSync(cnameRoot)) {
 fs.copyFileSync(cnameRoot, cnameDist);
 console.log('✓ Ensured CNAME (chat.webguruji.online) exists in root and dist');
 
-// 7. Ensure .nojekyll exists in root and dist for GitHub Pages
+// 7. Ensure .nojekyll exists in root for GitHub Pages
 const noJekyllRoot = path.resolve(rootDir, '.nojekyll');
-const noJekyllDist = path.resolve(distDir, '.nojekyll');
 fs.writeFileSync(noJekyllRoot, '', 'utf8');
-fs.writeFileSync(noJekyllDist, '', 'utf8');
-console.log('✓ Ensured .nojekyll exists in root and dist');
+console.log('✓ Ensured .nojekyll exists in root');

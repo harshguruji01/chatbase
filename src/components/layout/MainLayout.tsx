@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { TabType } from '../../types';
 import { useChat } from '../../context/ChatContext';
 import { useAuth } from '../../context/AuthContext';
@@ -15,6 +15,8 @@ import { ProfileView } from '../profile/ProfileView';
 import { LocationPermissionModal } from '../auth/LocationPermissionModal';
 import { SettingsModal } from '../settings/SettingsModal';
 import { PublicProfileModal } from '../profile/PublicProfileModal';
+import { BottomStickyAd } from '../ads/BottomStickyAd';
+import { InterstitialAdModal } from '../ads/InterstitialAdModal';
 
 export const MainLayout: React.FC = () => {
   const { user } = useAuth();
@@ -24,8 +26,22 @@ export const MainLayout: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('chat');
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showInterstitialAd, setShowInterstitialAd] = useState(false);
   const [publicProfileUserId, setPublicProfileUserId] = useState<string | null>(null);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth > 900);
+  const tabSwitchCountRef = useRef(0);
+
+  const handleTabChange = (tab: TabType) => {
+    if (activeConversation) {
+      selectConversation(null);
+    }
+    setActiveTab(tab);
+    tabSwitchCountRef.current += 1;
+    // Show high-converting interstitial ad on every 4th tab switch
+    if (tabSwitchCountRef.current > 0 && tabSwitchCountRef.current % 4 === 0) {
+      setShowInterstitialAd(true);
+    }
+  };
 
   // Initialize centralized hardware & browser back button handling
   useEffect(() => {
@@ -90,12 +106,7 @@ export const MainLayout: React.FC = () => {
       {isDesktop && (
         <Sidebar
           activeTab={activeTab}
-          onSelectTab={(tab) => {
-            if (activeConversation) {
-              selectConversation(null);
-            }
-            setActiveTab(tab);
-          }}
+          onSelectTab={handleTabChange}
           onOpenSettings={() => setIsSettingsOpen(true)}
         />
       )}
@@ -174,16 +185,14 @@ export const MainLayout: React.FC = () => {
           )}
         </div>
 
+        {/* High-visibility Bottom Sticky Banner Ad (Slot: 9840129247) */}
+        {!isInsideActiveChat && <BottomStickyAd />}
+
         {/* Unified Bottom Box Navigation (Visible on mobile & desktop when not in active chat) */}
         {!isInsideActiveChat && (
           <BottomNav
             activeTab={activeTab}
-            onSelectTab={(tab) => {
-              if (activeConversation) {
-                selectConversation(null);
-              }
-              setActiveTab(tab);
-            }}
+            onSelectTab={handleTabChange}
           />
         )}
       </div>
@@ -210,6 +219,12 @@ export const MainLayout: React.FC = () => {
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+      />
+
+      {/* High CTR Interstitial Ad Modal (Slot: 1759651216 & App Open: 4220047614) */}
+      <InterstitialAdModal
+        isOpen={showInterstitialAd}
+        onClose={() => setShowInterstitialAd(false)}
       />
     </div>
   );
