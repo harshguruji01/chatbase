@@ -499,7 +499,7 @@ export const ProfileView: React.FC = () => {
             </div>
 
             <button
-              onClick={() => setIsDownloadOpen(true)}
+              onClick={() => { window.location.href = 'https://webguruji.online/store-detail.html?slug=chatbase'; }}
               style={{
                 display: 'flex',
                 alignItems: 'center',

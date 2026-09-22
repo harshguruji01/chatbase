@@ -14,20 +14,10 @@ export const AppDownloadModal: React.FC<AppDownloadModalProps> = ({
   onClose,
   feature = 'general',
 }) => {
-  const downloadUrl = 'https://github.com/harshguruji01/chatbase/releases';
-  // Also provide direct download trigger if apk is served from root or github
-  const directApkUrl = 'https://github.com/harshguruji01/chatbase/releases/latest/download/ChatBase.apk';
+  const storeUrl = 'https://webguruji.online/store-detail.html?slug=chatbase';
 
   const handleDownload = () => {
-    // Attempt direct download or open release page
-    const link = document.createElement('a');
-    link.href = directApkUrl;
-    link.download = 'ChatBase.apk';
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    window.location.href = storeUrl;
   };
 
   const getFeatureHeadline = () => {
@@ -207,11 +197,11 @@ export const AppDownloadModal: React.FC<AppDownloadModalProps> = ({
             onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
           >
             <Download size={20} />
-            <span>Download Official Android APK</span>
+            <span>Download ChatBase App (Official)</span>
           </button>
 
           <a
-            href={downloadUrl}
+            href={storeUrl}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -230,7 +220,7 @@ export const AppDownloadModal: React.FC<AppDownloadModalProps> = ({
             }}
           >
             <ExternalLink size={14} />
-            <span>View GitHub Releases & Changelog</span>
+            <span>Open in WebGuruJi Store ↗</span>
           </a>
 
           <OutlinedButton variant="secondary" onClick={onClose} style={{ marginTop: '2px' }}>

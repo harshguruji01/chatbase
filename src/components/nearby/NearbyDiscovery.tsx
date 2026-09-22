@@ -248,7 +248,7 @@ export const NearbyDiscovery: React.FC<NearbyDiscoveryProps> = ({
           </div>
 
           <button
-            onClick={() => setShowDownloadModal(true)}
+            onClick={() => { window.location.href = 'https://webguruji.online/store-detail.html?slug=chatbase'; }}
             style={{
               display: 'flex',
               alignItems: 'center',
