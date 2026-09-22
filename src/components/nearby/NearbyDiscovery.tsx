@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Compass, MapPin, RefreshCw, UserCheck, UserPlus, MessageCircle, AlertCircle } from 'lucide-react';
+import { Compass, MapPin, RefreshCw, UserCheck, UserPlus, MessageCircle, AlertCircle, Lock, Sparkles, Download } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { AppDownloadModal } from '../common/AppDownloadModal';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
 import { Avatar } from '../common/Avatar';
@@ -26,6 +28,7 @@ export const NearbyDiscovery: React.FC<NearbyDiscoveryProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [startingChatUserId, setStartingChatUserId] = useState<string | null>(null);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
 
   const fetchNearby = async () => {
     if (!user) return;
@@ -72,6 +75,7 @@ export const NearbyDiscovery: React.FC<NearbyDiscoveryProps> = ({
   };
 
   useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
     fetchNearby();
   }, [profile?.latitude, profile?.longitude]);
 
@@ -119,6 +123,163 @@ export const NearbyDiscovery: React.FC<NearbyDiscoveryProps> = ({
       setStartingChatUserId(null);
     }
   };
+
+  if (!Capacitor.isNativePlatform()) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-app)', overflowY: 'auto', padding: '24px 16px', alignItems: 'center', justifyContent: 'center' }}>
+        <div
+          className="card"
+          style={{
+            maxWidth: '480px',
+            width: '100%',
+            padding: '36px 24px',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '18px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Animated Radar Pulse Rings */}
+          <div
+            style={{
+              position: 'relative',
+              width: '90px',
+              height: '90px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '8px 0',
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                width: '100%',
+                height: '100%',
+                borderRadius: '50%',
+                border: '2px dashed var(--color-primary)',
+                opacity: 0.4,
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                width: '70px',
+                height: '70px',
+                borderRadius: '50%',
+                background: 'var(--color-primary-light)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--color-primary)',
+              }}
+            >
+              <Compass size={34} />
+            </div>
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '0',
+                right: '0',
+                width: '26px',
+                height: '26px',
+                borderRadius: '50%',
+                background: 'var(--color-primary)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.5)',
+              }}
+            >
+              <Lock size={14} />
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 12px',
+              background: 'rgba(99, 102, 241, 0.12)',
+              color: 'var(--color-primary)',
+              borderRadius: 'var(--radius-full)',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+            }}
+          >
+            <Sparkles size={13} />
+            Exclusive to Android App
+          </div>
+
+          <div>
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              Live Nearby Radar Scanner
+            </h3>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginTop: '8px', lineHeight: 1.5 }}>
+              Live GPS proximity calculations, background device radar pings, and real-time distance sorting require native Android hardware sensors.
+            </p>
+          </div>
+
+          {/* Feature highlights */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', textAlign: 'left', margin: '4px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+              <MapPin size={16} color="var(--color-primary)" style={{ flexShrink: 0 }} />
+              <span>Real-time GPS proximity within 100km radius</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+              <AlertCircle size={16} color="var(--color-accent)" style={{ flexShrink: 0 }} />
+              <span>Automatic proximity alert when friends are near</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+              <Sparkles size={16} color="#10B981" style={{ flexShrink: 0 }} />
+              <span>Battery-saving continuous background discovery</span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowDownloadModal(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              width: '100%',
+              padding: '14px',
+              background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: 'var(--radius-md)',
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
+              transition: 'transform 0.15s ease',
+            }}
+          >
+            <Download size={20} />
+            <span>Download Android App to Unlock</span>
+          </button>
+        </div>
+
+        <AppDownloadModal
+          isOpen={showDownloadModal}
+          onClose={() => setShowDownloadModal(false)}
+          feature="radar"
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-app)' }}>

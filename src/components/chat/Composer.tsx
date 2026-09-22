@@ -13,6 +13,8 @@ import { EmojiPicker } from './EmojiPicker';
 import { InlineVoiceRecorder } from './InlineVoiceRecorder';
 import { ImagePreviewModal } from './ImagePreviewModal';
 import { VideoUploaderModal } from './VideoUploaderModal';
+import { AppDownloadModal } from '../common/AppDownloadModal';
+import { Capacitor } from '@capacitor/core';
 import { useChat } from '../../context/ChatContext';
 import { useBackButton } from '../../lib/useBackButton';
 import { useToast } from '../common/Toast';
@@ -23,6 +25,7 @@ export const Composer: React.FC = () => {
 
   const [text, setText] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
   const [isRecordingInline, setIsRecordingInline] = useState(false);
@@ -40,6 +43,16 @@ export const Composer: React.FC = () => {
   useBackButton(() => setIsRecordingInline(false), isRecordingInline, 70);
   useBackButton(() => setStagedImage(null), !!stagedImage, 80);
   useBackButton(() => setShowVideoModal(false), showVideoModal, 80);
+  useBackButton(() => setShowDownloadModal(false), showDownloadModal, 90);
+
+  const handleMicClick = () => {
+    setShowActionsMenu(false);
+    if (!Capacitor.isNativePlatform()) {
+      setShowDownloadModal(true);
+      return;
+    }
+    setIsRecordingInline(true);
+  };
 
   // Auto-resize textarea as text grows & broadcast typing
   useEffect(() => {
@@ -231,15 +244,19 @@ export const Composer: React.FC = () => {
           {/* Voice Note */}
           <button
             className="ig-menu-item"
-            onClick={() => {
-              setShowActionsMenu(false);
-              setIsRecordingInline(true);
-            }}
+            onClick={handleMicClick}
           >
             <div className="ig-menu-item-icon" style={{ background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)' }}>
               <Mic size={20} />
             </div>
-            <span>Voice Note</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>Voice Note</span>
+              {!Capacitor.isNativePlatform() && (
+                <span style={{ fontSize: '0.65rem', padding: '2px 5px', borderRadius: '4px', background: 'var(--color-primary)', color: '#fff', fontWeight: 700, letterSpacing: '0.5px' }}>
+                  APK ONLY
+                </span>
+              )}
+            </div>
           </button>
 
           {/* Video */}
@@ -354,11 +371,25 @@ export const Composer: React.FC = () => {
               {/* Direct Inline Mic Button */}
               <button
                 type="button"
-                onClick={() => setIsRecordingInline(true)}
+                onClick={handleMicClick}
                 className="ig-action-btn"
-                title="Voice note"
+                title={!Capacitor.isNativePlatform() ? 'Voice note (Download Android App)' : 'Voice note'}
+                style={{ position: 'relative' }}
               >
                 <Mic size={20} />
+                {!Capacitor.isNativePlatform() && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '6px',
+                      right: '6px',
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      background: 'var(--color-primary)',
+                    }}
+                  />
+                )}
               </button>
 
               {/* Direct Gallery / Photo Button */}
@@ -400,6 +431,13 @@ export const Composer: React.FC = () => {
         onClose={() => setShowVideoModal(false)}
         onSendVideo={handleSendVideo}
         uploadProgress={uploadProgress}
+      />
+
+      {/* Android Exclusive Feature Download Modal */}
+      <AppDownloadModal
+        isOpen={showDownloadModal}
+        onClose={() => setShowDownloadModal(false)}
+        feature="voice"
       />
     </div>
   );

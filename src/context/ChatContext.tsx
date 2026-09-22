@@ -177,7 +177,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         setMessages(visibleMessages);
 
-        // Mark unread as 0 in membership
+        // Mark unread as 0 in membership and immediately update local state
+        setConversations((prev) =>
+          prev.map((c) => (c.id === convId ? { ...c, unread_count: 0 } : c))
+        );
+
         await supabase
           .from('conversation_members')
           .update({ unread_count: 0, last_read_at: new Date().toISOString() })
@@ -336,6 +340,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setActiveConversation(conversation);
     setIsOtherTyping(false);
     setTypingUserName('');
+    if (conversation) {
+      setConversations((prev) =>
+        prev.map((c) => (c.id === conversation.id ? { ...c, unread_count: 0 } : c))
+      );
+    }
   };
 
   // Find or create a direct conversation with a user atomically via Postgres RPC

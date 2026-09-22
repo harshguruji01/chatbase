@@ -1,5 +1,6 @@
-import React from 'react';
-import { Home, MessageSquare, Search, User, Moon, Sun, Laptop, Settings } from 'lucide-react';
+import React, { useState } from 'react';
+import { Home, MessageSquare, Search, User, Moon, Sun, Laptop, Settings, Smartphone } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import type { TabType } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
@@ -7,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { BrandHeader } from '../common/BrandHeader';
 import { Avatar } from '../common/Avatar';
+import { AppDownloadModal } from '../common/AppDownloadModal';
 
 interface SidebarProps {
   activeTab: TabType;
@@ -19,6 +21,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab, onOpen
   const { conversations } = useChat();
   const { theme, setTheme } = useTheme();
   const { t } = useLanguage();
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
 
   const totalUnread = conversations.reduce((acc, c) => acc + (c.unread_count || 0), 0);
 
@@ -97,6 +100,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab, onOpen
             <span>{t('settings')}</span>
           </button>
         )}
+        {/* Get Android App (Web Only) */}
+        {!Capacitor.isNativePlatform() && (
+          <div style={{ marginTop: 'auto', padding: '6px 4px 2px' }}>
+            <button
+              onClick={() => setShowDownloadModal(true)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-md)',
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.18))',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+                color: 'var(--color-primary)',
+                cursor: 'pointer',
+                textAlign: 'left',
+              }}
+            >
+              <Smartphone size={20} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                  Get Android App
+                </div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  Unlock Voice & Radar
+                </div>
+              </div>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Bottom Profile Bar */}
@@ -140,6 +174,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab, onOpen
           {theme === 'dark' ? <Moon size={18} /> : theme === 'light' ? <Sun size={18} /> : <Laptop size={18} />}
         </button>
       </div>
+
+      <AppDownloadModal
+        isOpen={showDownloadModal}
+        onClose={() => setShowDownloadModal(false)}
+        feature="general"
+      />
     </div>
   );
 };

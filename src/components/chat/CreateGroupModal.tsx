@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Camera, Search, X, Check, Users, AlertCircle } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Avatar } from '../common/Avatar';
@@ -37,41 +37,58 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Load followers/following list as initial candidates when modal opens
+  const loadInitialCandidates = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data: followsData } = await supabase
+        .from('follows')
+        .select('following:following_id(*), follower:follower_id(*)')
+        .or(`follower_id.eq.${user.id},following_id.eq.${user.id}`)
+        .limit(25);
+
+      const candidatesMap = new Map<string, Profile>();
+      (followsData || []).forEach((row: any) => {
+        if (row.following && row.following.id !== user.id) {
+          candidatesMap.set(row.following.id, row.following as Profile);
+        }
+        if (row.follower && row.follower.id !== user.id) {
+          candidatesMap.set(row.follower.id, row.follower as Profile);
+        }
+      });
+
+      // Fallback: If user has no followers/following yet, show suggested profiles
+      if (candidatesMap.size === 0) {
+        const { data: suggested } = await supabase
+          .from('profiles')
+          .select('*')
+          .neq('id', user.id)
+          .limit(15);
+
+        if (suggested) {
+          suggested.forEach((p: any) => candidatesMap.set(p.id, p as Profile));
+        }
+      }
+
+      setSearchResults(Array.from(candidatesMap.values()));
+    } catch (err) {
+      console.warn('Could not load candidates:', err);
+    }
+  }, [user]);
+
+  // Load candidates list when modal opens
   useEffect(() => {
     if (!isOpen || !user) return;
-
-    const loadInitialCandidates = async () => {
-      try {
-        const { data: followsData } = await supabase
-          .from('follows')
-          .select('following:following_id(*), follower:follower_id(*)')
-          .or(`follower_id.eq.${user.id},following_id.eq.${user.id}`)
-          .limit(25);
-
-        const candidatesMap = new Map<string, Profile>();
-        (followsData || []).forEach((row: any) => {
-          if (row.following && row.following.id !== user.id) {
-            candidatesMap.set(row.following.id, row.following as Profile);
-          }
-          if (row.follower && row.follower.id !== user.id) {
-            candidatesMap.set(row.follower.id, row.follower as Profile);
-          }
-        });
-
-        setSearchResults(Array.from(candidatesMap.values()));
-      } catch (err) {
-        console.warn('Could not load candidates:', err);
-      }
-    };
-
     loadInitialCandidates();
-  }, [isOpen, user]);
+  }, [isOpen, user, loadInitialCandidates]);
 
   // Search users by query
   useEffect(() => {
     if (!isOpen || !user) return;
     const q = searchQuery.trim().replace(/^@/, '');
-    if (!q) return;
+    if (!q) {
+      loadInitialCandidates();
+      return;
+    }
 
     const timer = setTimeout(async () => {
       setIsSearching(true);

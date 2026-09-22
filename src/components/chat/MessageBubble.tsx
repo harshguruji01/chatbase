@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
   Check,
   CheckCheck,
@@ -33,6 +33,10 @@ interface MessageBubbleProps {
 
 const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '🔥', '👏'];
 
+// Global coordinator to prevent multiple voice notes from playing simultaneously
+let globalActiveAudio: HTMLAudioElement | null = null;
+let globalStopAudioCallback: (() => void) | null = null;
+
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   isOutgoing,
@@ -53,6 +57,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const daysRemaining = getDaysRemaining(message.expires_at);
+
+  // Stop audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   // Generate a consistent pseudo-random waveform pattern for this voice note
   const waveformHeights = useMemo(() => {
@@ -75,7 +89,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       audioRef.current = audio;
 
       audio.ontimeupdate = () => {
-        if (audio.duration) {
+        if (audio.duration && !isNaN(audio.duration)) {
           setAudioProgress((audio.currentTime / audio.duration) * 100);
           setAudioCurrentTime(audio.currentTime);
         }
@@ -85,6 +99,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         setIsPlayingAudio(false);
         setAudioProgress(0);
         setAudioCurrentTime(0);
+        if (audioRef.current) {
+          audioRef.current.currentTime = 0;
+        }
       };
     }
 
@@ -93,8 +110,28 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         audioRef.current.pause();
         setIsPlayingAudio(false);
       } else {
-        audioRef.current.play();
-        setIsPlayingAudio(true);
+        // Pause any other playing voice note
+        if (globalActiveAudio && globalActiveAudio !== audioRef.current) {
+          globalActiveAudio.pause();
+          if (globalStopAudioCallback) globalStopAudioCallback();
+        }
+        globalActiveAudio = audioRef.current;
+        globalStopAudioCallback = () => setIsPlayingAudio(false);
+
+        // Reset if ended or at end
+        if (audioRef.current.ended || (audioRef.current.duration && audioRef.current.currentTime >= audioRef.current.duration)) {
+          audioRef.current.currentTime = 0;
+          setAudioProgress(0);
+          setAudioCurrentTime(0);
+        }
+
+        audioRef.current
+          .play()
+          .then(() => setIsPlayingAudio(true))
+          .catch((err) => {
+            console.warn('Audio playback error:', err);
+            setIsPlayingAudio(false);
+          });
       }
     }
   };
@@ -112,8 +149,17 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       setAudioProgress(percentage * 100);
       setAudioCurrentTime(audioRef.current.currentTime);
       if (!isPlayingAudio) {
-        audioRef.current.play();
-        setIsPlayingAudio(true);
+        if (globalActiveAudio && globalActiveAudio !== audioRef.current) {
+          globalActiveAudio.pause();
+          if (globalStopAudioCallback) globalStopAudioCallback();
+        }
+        globalActiveAudio = audioRef.current;
+        globalStopAudioCallback = () => setIsPlayingAudio(false);
+
+        audioRef.current
+          .play()
+          .then(() => setIsPlayingAudio(true))
+          .catch(console.warn);
       }
     }
   };

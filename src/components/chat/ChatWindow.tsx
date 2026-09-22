@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { ArrowLeft, MoreVertical, ShieldAlert, Ban, User, Users, LogOut, Trash2 } from 'lucide-react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { ArrowLeft, MoreVertical, ShieldAlert, Ban, User, Users, LogOut, Trash2, ChevronDown } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import { useAuth } from '../../context/AuthContext';
 import { Avatar } from '../common/Avatar';
@@ -17,9 +17,10 @@ import brandLogo from '../../assets/chatbase.png';
 interface ChatWindowProps {
   onBack?: () => void;
   onViewProfile?: (userId: string) => void;
+  isDesktopDualPane?: boolean;
 }
 
-export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile }) => {
+export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile, isDesktopDualPane = false }) => {
   const { user } = useAuth();
   const { activeConversation, messages, deleteMessage, clearChat, blockUser, isUserBlocked, isOtherTyping, typingUserName } = useChat();
   const { showToast } = useToast();
@@ -33,6 +34,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
   const [reportReason, setReportReason] = useState('spam');
   const [reportDetails, setReportDetails] = useState('');
   const [isReporting, setIsReporting] = useState(false);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
 
   const isGroup = Boolean(activeConversation?.is_group);
   const otherUser = activeConversation?.other_member;
@@ -44,20 +46,32 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
   useBackButton(() => setShowMenu(false), showMenu, 50);
   useBackButton(() => setShowGroupDetailsModal(false), showGroupDetailsModal, 60);
   useBackButton(() => setShowClearChatConfirm(false), showClearChatConfirm, 65);
-  // 2. Go back from active chat to conversation list (priority 20)
+  // 2. Go back from active chat to conversation list on mobile (priority 20)
   useBackButton(() => {
-    if (onBack) {
+    if (onBack && !isDesktopDualPane) {
       onBack();
       return true;
     }
-  }, Boolean(onBack), 20);
+  }, Boolean(onBack && !isDesktopDualPane), 20);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = useCallback((smooth = true) => {
+    messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+  }, []);
 
   // Auto-scroll to latest message
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    scrollToBottom(true);
+  }, [messages, scrollToBottom]);
+
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    setShowScrollBottom(distanceFromBottom > 220);
+  };
 
   const handleConfirmClearChat = async () => {
     if (!activeConversation) return;
@@ -221,7 +235,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {onBack && (
+          {onBack && !isDesktopDualPane && (
             <button
               onClick={onBack}
               style={{
@@ -273,8 +287,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
                   </span>
                 </div>
                 {isOtherTyping ? (
-                  <span style={{ fontSize: '0.78rem', color: 'var(--color-primary)', fontWeight: 700 }}>
-                    {typingUserName ? `${typingUserName} is typing...` : 'typing...'}
+                  <span style={{ fontSize: '0.78rem', color: 'var(--color-primary)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <span>{typingUserName ? `${typingUserName} is typing` : 'typing'}</span>
+                    <span className="typing-indicator">
+                      <span className="typing-dot" />
+                      <span className="typing-dot" />
+                      <span className="typing-dot" />
+                    </span>
                   </span>
                 ) : (
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
@@ -310,12 +329,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
                       fontSize: '0.78rem',
                       color: 'var(--color-primary)',
                       fontWeight: 700,
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px',
                     }}
                   >
-                    typing...
+                    <span>typing</span>
+                    <span className="typing-indicator">
+                      <span className="typing-dot" />
+                      <span className="typing-dot" />
+                      <span className="typing-dot" />
+                    </span>
                   </span>
                 ) : (
                   <span style={{ fontSize: '0.78rem', color: otherUser?.show_online_status ? 'var(--color-success)' : 'var(--text-muted)' }}>
@@ -534,6 +558,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
 
       {/* Messages Scroll Area */}
       <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
         style={{
           flex: 1,
           overflowY: 'auto',
@@ -541,6 +567,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
           display: 'flex',
           flexDirection: 'column',
           gap: '8px',
+          position: 'relative',
         }}
       >
         {/* Top 30-day banner */}
@@ -570,6 +597,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile })
         ))}
 
         <div ref={messagesEndRef} />
+
+        {/* Floating Scroll To Bottom Button */}
+        {showScrollBottom && (
+          <button
+            type="button"
+            className="scroll-bottom-btn fade-in-up"
+            onClick={() => scrollToBottom(true)}
+            title="Scroll to bottom"
+            aria-label="Scroll to bottom"
+          >
+            <ChevronDown size={20} />
+          </button>
+        )}
       </div>
 
       {/* Composer or Block Banner */}

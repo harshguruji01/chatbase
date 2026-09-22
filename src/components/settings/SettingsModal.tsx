@@ -67,15 +67,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
 
-  // Sync profile when opened
+  // Sync profile and active tab when opened
   React.useEffect(() => {
-    if (profile) {
-      setDisplayName(profile.display_name || '');
-      setBio(profile.bio || '');
-      setPhone(profile.phone || '');
-      setAvatarPreview(profile.avatar_url || null);
+    if (isOpen) {
+      setActiveTab(defaultTab);
+      if (profile) {
+        setDisplayName(profile.display_name || '');
+        setBio(profile.bio || '');
+        setPhone(profile.phone || '');
+        setAvatarPreview(profile.avatar_url || null);
+      }
     }
-  }, [profile, isOpen]);
+  }, [profile, isOpen, defaultTab]);
 
   const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {

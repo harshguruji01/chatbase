@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, X, UserPlus, UserCheck, MessageCircle, AlertCircle, Ban } from 'lucide-react';
+import { Search, X, UserPlus, UserCheck, MessageCircle, AlertCircle, Ban, Compass } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
 import { Avatar } from '../common/Avatar';
@@ -9,6 +9,7 @@ import type { Profile } from '../../types';
 import { useToast } from '../common/Toast';
 import { useLanguage } from '../../context/LanguageContext';
 import { useBackButton } from '../../lib/useBackButton';
+import { NearbyDiscovery } from '../nearby/NearbyDiscovery';
 
 interface UserSearchProps {
   onStartChat: () => void;
@@ -21,6 +22,7 @@ export const UserSearch: React.FC<UserSearchProps> = ({ onStartChat, onViewProfi
   const { showToast } = useToast();
   const { t, language } = useLanguage();
 
+  const [searchTab, setSearchTab] = useState<'search' | 'nearby'>('search');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<(Profile & { is_following?: boolean })[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -145,52 +147,79 @@ export const UserSearch: React.FC<UserSearchProps> = ({ onStartChat, onViewProfi
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-app)' }}>
-      {/* Prominent Search Header */}
+      {/* Search & Discovery Header */}
       <div
         style={{
-          padding: '20px 16px',
+          padding: '16px 16px 12px',
           borderBottom: '1px solid var(--border-color)',
           background: 'var(--bg-card)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '10px',
+          gap: '12px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>{t('find_people')}</h3>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              {language === 'hi' ? 'यूजर ID (जैसे HGP8QZ3J), यूजरनेम या नाम से खोजें' : 'Search by Unique User ID (e.g. HGP8QZ3J), @username or name'}
+              {language === 'hi' ? 'यूजर ID (जैसे HGP8QZ3J), नाम या लोकेशन से खोजें' : 'Search by Unique User ID, username, or find people nearby'}
             </p>
           </div>
         </div>
 
-        <div className="input-wrapper">
-          <Search size={18} className="input-icon-left" />
-          <input
-            type="text"
-            className="input-field has-left-icon"
-            placeholder={t('search_placeholder')}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            style={{ borderRadius: 'var(--radius-full)', padding: '12px 42px 12px 44px', fontSize: '0.95rem' }}
-            autoFocus
-          />
-          {query && (
-            <button
-              onClick={() => setQuery('')}
-              className="input-icon-right"
-              style={{ padding: '4px' }}
-              aria-label="Clear Search"
-            >
-              <X size={16} />
-            </button>
-          )}
+        {/* Segmented Control */}
+        <div className="segmented-control">
+          <button
+            type="button"
+            className={`segmented-item ${searchTab === 'search' ? 'active' : ''}`}
+            onClick={() => setSearchTab('search')}
+          >
+            <Search size={15} />
+            <span>Search by ID / Name</span>
+          </button>
+          <button
+            type="button"
+            className={`segmented-item ${searchTab === 'nearby' ? 'active' : ''}`}
+            onClick={() => setSearchTab('nearby')}
+          >
+            <Compass size={15} />
+            <span>Discover Nearby (Radar)</span>
+          </button>
         </div>
+
+        {searchTab === 'search' && (
+          <div className="input-wrapper">
+            <Search size={18} className="input-icon-left" />
+            <input
+              type="text"
+              className="input-field has-left-icon"
+              placeholder={t('search_placeholder')}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              style={{ borderRadius: 'var(--radius-full)', padding: '12px 42px 12px 44px', fontSize: '0.95rem' }}
+              autoFocus
+            />
+            {query && (
+              <button
+                onClick={() => setQuery('')}
+                className="input-icon-right"
+                style={{ padding: '4px' }}
+                aria-label="Clear Search"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Results List */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+      {searchTab === 'nearby' ? (
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <NearbyDiscovery onStartChat={onStartChat} onViewProfile={onViewProfile} />
+        </div>
+      ) : (
+        /* Results List */
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
         {isLoading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {[1, 2, 3].map((i) => (
@@ -329,6 +358,7 @@ export const UserSearch: React.FC<UserSearchProps> = ({ onStartChat, onViewProfi
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };

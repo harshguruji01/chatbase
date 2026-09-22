@@ -123,18 +123,33 @@ export const MainLayout: React.FC = () => {
             </div>
           )}
 
-          {/* 2. Chats Tab (List or Full Active Chat) */}
+          {/* 2. Chats Tab (Dual-Pane on Desktop, Single-View on Mobile) */}
           {activeTab === 'chat' && (
             <div style={{ flex: 1, height: '100%', overflow: 'hidden', display: 'flex' }}>
-              {!activeConversation ? (
-                // Full Screen Conversation List
+              {isDesktop ? (
+                /* Professional Desktop Dual-Pane Layout */
+                <div className="chat-split-container">
+                  <div className="chat-list-pane">
+                    <ConversationList onSelectTab={setActiveTab} onViewProfile={handleViewProfile} />
+                  </div>
+                  <div className="chat-window-pane">
+                    <ChatWindow
+                      onBack={handleBackFromChat}
+                      onViewProfile={handleViewProfile}
+                      isDesktopDualPane={true}
+                    />
+                  </div>
+                </div>
+              ) : !activeConversation ? (
+                /* Mobile: Full-Screen Conversation List */
                 <ConversationList onSelectTab={setActiveTab} onViewProfile={handleViewProfile} />
               ) : (
-                // Full Screen Chat Session with Message & Input bar
+                /* Mobile: Full-Screen Active Chat Session */
                 <div style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column' }}>
                   <ChatWindow
                     onBack={handleBackFromChat}
                     onViewProfile={handleViewProfile}
+                    isDesktopDualPane={false}
                   />
                 </div>
               )}

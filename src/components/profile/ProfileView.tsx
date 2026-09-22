@@ -15,16 +15,19 @@ import {
   Users,
   User as UserIcon,
   Languages,
+  Download,
+  Smartphone,
 } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Avatar } from '../common/Avatar';
 import { OutlinedButton } from '../common/OutlinedButton';
-import { EditProfileModal } from './EditProfileModal';
 import { PrivacySettingsModal } from './PrivacySettingsModal';
 import { AboutModal } from './AboutModal';
 import { SettingsModal } from '../settings/SettingsModal';
+import { AppDownloadModal } from '../common/AppDownloadModal';
 import { Modal } from '../common/Modal';
 import { copyToClipboard } from '../../lib/utils';
 import { supabase } from '../../lib/supabase';
@@ -37,7 +40,8 @@ export const ProfileView: React.FC = () => {
   const { language, setLanguage, t } = useLanguage();
   const { showToast } = useToast();
 
-  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -452,6 +456,72 @@ export const ProfileView: React.FC = () => {
           </button>
         </div>
 
+        {/* Android App Promotion Card (Web Only) */}
+        {!Capacitor.isNativePlatform() && (
+          <div
+            className="card"
+            style={{
+              padding: '20px',
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.16))',
+              border: '1px solid rgba(99, 102, 241, 0.25)',
+              borderRadius: 'var(--radius-lg)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: 'var(--color-primary)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Smartphone size={22} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: 0 }}>Get ChatBase for Android</h4>
+                  <span style={{ fontSize: '0.68rem', padding: '2px 6px', background: 'var(--color-primary)', color: '#fff', borderRadius: '4px', fontWeight: 700 }}>
+                    RECOMMENDED
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '2px 0 0' }}>
+                  Unlock HD Voice Notes, Live GPS Radar, and Instant Notifications.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsDownloadOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '10px',
+                background: 'var(--color-primary)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: 'var(--radius-md)',
+                fontWeight: 700,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+              }}
+            >
+              <Download size={16} />
+              <span>Download Official Android App (APK)</span>
+            </button>
+          </div>
+        )}
+
         {/* Logout and Delete Account */}
         <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
           <OutlinedButton
@@ -482,9 +552,9 @@ export const ProfileView: React.FC = () => {
         onClose={() => setIsSettingsOpen(false)}
         defaultTab={settingsTab}
       />
-      <EditProfileModal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} />
       <PrivacySettingsModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
       <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+      <AppDownloadModal isOpen={isDownloadOpen} onClose={() => setIsDownloadOpen(false)} feature="general" />
 
       {/* Delete Account Confirmation Modal */}
       <Modal

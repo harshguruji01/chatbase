@@ -97,13 +97,16 @@ export const InlineVoiceRecorder: React.FC<InlineVoiceRecorderProps> = ({
     if (!audioPreviewRef.current && recordedAudio) {
       const audio = new Audio(recordedAudio.url);
       audio.ontimeupdate = () => {
-        if (audio.duration) {
+        if (audio.duration && !isNaN(audio.duration)) {
           setPreviewProgress((audio.currentTime / audio.duration) * 100);
         }
       };
       audio.onended = () => {
         setIsPlayingPreview(false);
         setPreviewProgress(0);
+        if (audioPreviewRef.current) {
+          audioPreviewRef.current.currentTime = 0;
+        }
       };
       audioPreviewRef.current = audio;
     }
@@ -113,8 +116,30 @@ export const InlineVoiceRecorder: React.FC<InlineVoiceRecorderProps> = ({
         audioPreviewRef.current.pause();
         setIsPlayingPreview(false);
       } else {
-        audioPreviewRef.current.play();
-        setIsPlayingPreview(true);
+        if (audioPreviewRef.current.ended || (audioPreviewRef.current.duration && audioPreviewRef.current.currentTime >= audioPreviewRef.current.duration)) {
+          audioPreviewRef.current.currentTime = 0;
+          setPreviewProgress(0);
+        }
+        audioPreviewRef.current
+          .play()
+          .then(() => setIsPlayingPreview(true))
+          .catch((err) => {
+            console.warn('Preview play error:', err);
+            setIsPlayingPreview(false);
+          });
+      }
+    }
+  };
+
+  const handleSeekPreview = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (audioPreviewRef.current && audioPreviewRef.current.duration) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+      audioPreviewRef.current.currentTime = percentage * audioPreviewRef.current.duration;
+      setPreviewProgress(percentage * 100);
+      if (!isPlayingPreview) {
+        audioPreviewRef.current.play().then(() => setIsPlayingPreview(true)).catch(console.warn);
       }
     }
   };
@@ -223,6 +248,8 @@ export const InlineVoiceRecorder: React.FC<InlineVoiceRecorderProps> = ({
           {/* Scrub Bar & Duration */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <div
+              onClick={handleSeekPreview}
+              title="Click to scrub preview"
               style={{
                 height: '5px',
                 background: 'rgba(255, 255, 255, 0.12)',
