@@ -1,0 +1,6 @@
+# Robots.txt for Chat WebGuruJi (chat.webguruji.online)
+User-agent: *
+Allow: /
+
+# Sitemap URL for Google and other search engines
+Sitemap: https://chat.webguruji.online/sitemap.xml
