@@ -1,6 +1,91 @@
-# Robots.txt for Chat WebGuruJi (chat.webguruji.online)
+# ═══════════════════════════════════════════════════════════════
+# robots.txt — chat.webguruji.online (ChatBase by HarshGuruJi)
+# Last Updated: 2026-10-02
+# ═══════════════════════════════════════════════════════════════
+
+# ── Default Rules (All Search Engine Crawlers) ─────────────────
 User-agent: *
 Allow: /
+Allow: /chatbase.png
+Allow: /favicon.svg
+Allow: /logo.svg
+Allow: /icons.svg
+Allow: /ads.txt
+Allow: /index.html
+Allow: /404.html
 
-# Sitemap URL for Google and other search engines
+# Block non-public directories & files
+Disallow: /android/
+Disallow: /scripts/
+Disallow: /src/
+Disallow: /node_modules/
+Disallow: /.git/
+Disallow: /.github/
+Disallow: /.agents/
+Disallow: /.env
+Disallow: /.env.local
+Disallow: /.env.production
+Disallow: /.env.example
+Disallow: /version.json
+Disallow: /package.json
+Disallow: /package-lock.json
+Disallow: /tsconfig.json
+Disallow: /tsconfig.app.json
+Disallow: /tsconfig.node.json
+Disallow: /vite.config.ts
+Disallow: /capacitor.config.ts
+Disallow: /skills-lock.json
+Disallow: /.oxlintrc.json
+Disallow: /.nojekyll
+Disallow: /chatbase.apk
+
+# ── Aggressive SEO Bot Throttling ──────────────────────────────
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: MJ12bot
+Crawl-delay: 10
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+# ── GPTBot & AI Crawlers (Block if you don't want AI training) ─
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+# ── Google-Specific (Maximum Rich Results) ─────────────────────
+User-agent: Googlebot
+Allow: /
+Allow: /chatbase.png
+Allow: /logo.svg
+Allow: /favicon.svg
+
+User-agent: Googlebot-Image
+Allow: /chatbase.png
+Allow: /logo.svg
+Allow: /favicon.svg
+Allow: /icons.svg
+
+# ── Canonical Host ─────────────────────────────────────────────
+Host: https://chat.webguruji.online
+
+# ── Sitemap Location ──────────────────────────────────────────
 Sitemap: https://chat.webguruji.online/sitemap.xml

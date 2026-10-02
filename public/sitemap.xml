@@ -1,12 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- HOMEPAGE — Main App Entry Point -->
   <url>
     <loc>https://chat.webguruji.online/</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-10-02</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://chat.webguruji.online/chatbase.png</image:loc>
+      <image:title>Chat WebGuruJi — Official Logo</image:title>
+      <image:caption>Chat WebGuruJi (WebGuruJi Chats) official messaging app logo by HarshGuruJi</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://chat.webguruji.online/logo.svg</image:loc>
+      <image:title>Chat WebGuruJi SVG Logo</image:title>
+      <image:caption>Chat WebGuruJi vector logo by HarshGuruJi</image:caption>
+    </image:image>
   </url>
+
 </urlset>
