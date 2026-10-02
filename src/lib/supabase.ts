@@ -72,8 +72,8 @@ export const crossDomainStorage = {
   }
 };
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://wumdbpyhpblvgjttsbpv.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_xLqKY9N62MXb6ELG-5trig_RlJs_n-l';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://hzojuiccegnvanqowgmf.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_5A1JzL0pcic7ergdBEYbgQ_aVVWFajv';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

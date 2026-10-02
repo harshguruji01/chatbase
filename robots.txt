@@ -11,8 +11,6 @@ Allow: /favicon.svg
 Allow: /logo.svg
 Allow: /icons.svg
 Allow: /ads.txt
-Allow: /index.html
-Allow: /404.html
 
 # Block non-public directories & files
 Disallow: /android/
