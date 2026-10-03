@@ -44,7 +44,7 @@ export const BrandHeader: React.FC<BrandHeaderProps> = ({ size = 'md', showSubti
 
       {showSubtitle && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          <span>Made by</span>
+          <span>Part of</span>
           <a
             href="https://www.webguruji.online"
             target="_blank"
@@ -55,7 +55,7 @@ export const BrandHeader: React.FC<BrandHeaderProps> = ({ size = 'md', showSubti
               textDecoration: 'none',
             }}
           >
-            HarshGuruJi
+            WebGuruJi.online ↗
           </a>
         </div>
       )}

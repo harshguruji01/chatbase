@@ -131,6 +131,72 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab, onOpen
             </button>
           </div>
         )}
+
+        {/* WebGuruJi Network Links */}
+        <div style={{ padding: '8px 4px 4px', display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid var(--border-color)', marginTop: '8px' }}>
+          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', padding: '0 4px' }}>
+            WebGuruJi Network
+          </div>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            <a
+              href="https://books.webguruji.online"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                flex: 1,
+                padding: '6px 4px',
+                borderRadius: '6px',
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid var(--border-color)',
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                textDecoration: 'none',
+                textAlign: 'center',
+              }}
+            >
+              📚 Books
+            </a>
+            <a
+              href="https://store.webguruji.online"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                flex: 1,
+                padding: '6px 4px',
+                borderRadius: '6px',
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid var(--border-color)',
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                textDecoration: 'none',
+                textAlign: 'center',
+              }}
+            >
+              🛍️ Store
+            </a>
+            <a
+              href="https://www.webguruji.online"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                flex: 1,
+                padding: '6px 4px',
+                borderRadius: '6px',
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid var(--border-color)',
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                textDecoration: 'none',
+                textAlign: 'center',
+              }}
+            >
+              🌐 Main ↗
+            </a>
+          </div>
+        </div>
       </div>
 
       {/* Bottom Profile Bar */}
