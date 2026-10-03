@@ -303,6 +303,29 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onGoToRegister }) => {
               Create Account
             </button>
           </div>
+
+          <div style={{ marginTop: '20px', paddingTop: '14px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', textAlign: 'center', fontSize: '0.82rem', color: '#94a3b8' }}>
+            <span>Platform Founder: </span>
+            <a
+              href="https://www.webguruji.online/owner.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Meet the Owner: Harsh Patel"
+              style={{
+                fontWeight: 800,
+                background: 'linear-gradient(90deg, #60a5fa, #a855f7, #ec4899, #f59e0b, #60a5fa)',
+                backgroundSize: '200% auto',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              Harsh Patel <span style={{ color: '#ffd700', fontSize: '10px' }}>✓</span> ↗
+            </a>
+          </div>
         </div>
       </div>
 
