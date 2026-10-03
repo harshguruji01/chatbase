@@ -88,6 +88,7 @@ Disallow: /
 
 # ── Primary & Network Sitemaps ─────────────────────────────
 Sitemap: https://chat.webguruji.online/sitemap.xml
+Sitemap: https://chat.webguruji.online/sitemap_index.xml
 Sitemap: https://www.webguruji.online/sitemap.xml
 Sitemap: https://store.webguruji.online/sitemap.xml
 Sitemap: https://books.webguruji.online/sitemap.xml

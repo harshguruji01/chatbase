@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- HarshGuruJi Unified Network Sitemaps Index -->
+  <sitemap>
+    <loc>https://chat.webguruji.online/sitemap.xml</loc>
+    <lastmod>2026-10-03</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.webguruji.online/sitemap.xml</loc>
+    <lastmod>2026-10-03</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://store.webguruji.online/sitemap.xml</loc>
+    <lastmod>2026-10-03</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://books.webguruji.online/sitemap.xml</loc>
+    <lastmod>2026-10-03</lastmod>
+  </sitemap>
+</sitemapindex>
