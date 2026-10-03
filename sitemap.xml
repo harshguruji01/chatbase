@@ -3,23 +3,32 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
-        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd
+        http://www.google.com/schemas/sitemap-image/1.1
+        http://www.google.com/schemas/sitemap-image/1.1/sitemap-image.xsd">
 
-  <!-- HOMEPAGE — Main App Entry Point -->
+  <!-- ============================================================ -->
+  <!-- HarshGuruJi ChatBase — Official Messaging Subdomain           -->
+  <!-- Website Name: HarshGuruJi                                    -->
+  <!-- Main URL: https://www.webguruji.online                       -->
+  <!-- Subdomain URL: https://chat.webguruji.online/                -->
+  <!-- ============================================================ -->
+
+  <!-- HOMEPAGE — Main ChatBase Application -->
   <url>
     <loc>https://chat.webguruji.online/</loc>
-    <lastmod>2026-10-02</lastmod>
+    <lastmod>2026-10-03</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <image:image>
       <image:loc>https://chat.webguruji.online/chatbase.png</image:loc>
-      <image:title>Chat WebGuruJi — Official Logo</image:title>
-      <image:caption>Chat WebGuruJi (WebGuruJi Chats) official messaging app logo by HarshGuruJi</image:caption>
+      <image:title>HarshGuruJi ChatBase — Official Logo</image:title>
+      <image:caption>HarshGuruJi ChatBase official real-time messaging and chat platform by HarshGuruJi</image:caption>
     </image:image>
     <image:image>
       <image:loc>https://chat.webguruji.online/logo.svg</image:loc>
-      <image:title>Chat WebGuruJi SVG Logo</image:title>
-      <image:caption>Chat WebGuruJi vector logo by HarshGuruJi</image:caption>
+      <image:title>HarshGuruJi ChatBase Vector Logo</image:title>
+      <image:caption>HarshGuruJi ChatBase vector logo and icon</image:caption>
     </image:image>
   </url>
 

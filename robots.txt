@@ -1,19 +1,37 @@
-# ═══════════════════════════════════════════════════════════════
-# robots.txt — chat.webguruji.online (ChatBase by HarshGuruJi)
-# Last Updated: 2026-10-02
-# ═══════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
+# robots.txt — chat.webguruji.online (ChatBase Subdomain)
+# Website Name: HarshGuruJi
+# Main URL: https://www.webguruji.online
+# Subdomain: https://chat.webguruji.online
+# Description: HarshGuruJi ChatBase — Realtime Online Chat & Messaging Platform
+# Last Updated: 2026-10-03
+# ═══════════════════════════════════════════════════════════
 
-# ── Default Rules (All Search Engine Crawlers) ─────────────────
 User-agent: *
 Allow: /
+
+# ── Public App Assets & Endpoints ─────────────────────────
+Allow: /index.html
 Allow: /sitemap.xml
+Allow: /assets/
 Allow: /chatbase.png
 Allow: /favicon.svg
 Allow: /logo.svg
 Allow: /icons.svg
 Allow: /ads.txt
+Allow: /*.js$
+Allow: /*.css$
+Allow: /*.png$
+Allow: /*.svg$
+Allow: /*.webp$
+Allow: /*.ico$
 
-# Block non-public directories & files
+# ── Disallow: Admin, Internal Sources & Build Artifacts ────
+Disallow: /admin*
+Disallow: /admin/
+Disallow: /admin.html
+Disallow: /admin-*.html
+Disallow: /admin-chatbase.html
 Disallow: /android/
 Disallow: /scripts/
 Disallow: /src/
@@ -21,24 +39,38 @@ Disallow: /node_modules/
 Disallow: /.git/
 Disallow: /.github/
 Disallow: /.agents/
-Disallow: /.env
-Disallow: /.env.local
-Disallow: /.env.production
-Disallow: /.env.example
+Disallow: /.env*
 Disallow: /version.json
-Disallow: /package.json
-Disallow: /package-lock.json
-Disallow: /tsconfig.json
-Disallow: /tsconfig.app.json
-Disallow: /tsconfig.node.json
+Disallow: /package*.json
+Disallow: /tsconfig*.json
 Disallow: /vite.config.ts
 Disallow: /capacitor.config.ts
 Disallow: /skills-lock.json
 Disallow: /.oxlintrc.json
 Disallow: /.nojekyll
 Disallow: /chatbase.apk
+Disallow: /*.sql$
+Disallow: /*.md$
 
-# ── Aggressive SEO Bot Throttling ──────────────────────────────
+# ── Googlebot & Image Crawlers ─────────────────────────────
+User-agent: Googlebot
+Allow: /
+Allow: /assets/
+Allow: /chatbase.png
+Allow: /logo.svg
+Allow: /favicon.svg
+
+User-agent: Googlebot-Image
+Allow: /chatbase.png
+Allow: /logo.svg
+Allow: /favicon.svg
+Allow: /icons.svg
+
+User-agent: Bingbot
+Allow: /
+Allow: /assets/
+
+# ── Aggressive Bot Rate Limiting ───────────────────────────
 User-agent: AhrefsBot
 Crawl-delay: 10
 
@@ -54,37 +86,8 @@ Disallow: /
 User-agent: BLEXBot
 Disallow: /
 
-# ── GPTBot & AI Crawlers (Block if you don't want AI training) ─
-User-agent: GPTBot
-Disallow: /
-
-User-agent: ChatGPT-User
-Disallow: /
-
-User-agent: CCBot
-Disallow: /
-
-User-agent: anthropic-ai
-Disallow: /
-
-User-agent: Claude-Web
-Disallow: /
-
-# ── Google-Specific (Maximum Rich Results) ─────────────────────
-User-agent: Googlebot
-Allow: /
-Allow: /chatbase.png
-Allow: /logo.svg
-Allow: /favicon.svg
-
-User-agent: Googlebot-Image
-Allow: /chatbase.png
-Allow: /logo.svg
-Allow: /favicon.svg
-Allow: /icons.svg
-
-# ── Canonical Host ─────────────────────────────────────────────
-Host: https://chat.webguruji.online
-
-# ── Sitemap Location ──────────────────────────────────────────
+# ── Primary & Network Sitemaps ─────────────────────────────
 Sitemap: https://chat.webguruji.online/sitemap.xml
+Sitemap: https://www.webguruji.online/sitemap.xml
+Sitemap: https://store.webguruji.online/sitemap.xml
+Sitemap: https://books.webguruji.online/sitemap.xml
