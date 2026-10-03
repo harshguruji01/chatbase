@@ -135,7 +135,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab, onOpen
         {/* WebGuruJi Network Links */}
         <div style={{ padding: '8px 4px 4px', display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid var(--border-color)', marginTop: '8px' }}>
           <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', padding: '0 4px' }}>
-            WebGuruJi Network
+            HarshGuruJi Network
           </div>
           <div style={{ display: 'flex', gap: '4px' }}>
             <a

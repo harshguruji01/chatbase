@@ -55,7 +55,7 @@ export const BrandHeader: React.FC<BrandHeaderProps> = ({ size = 'md', showSubti
               textDecoration: 'none',
             }}
           >
-            WebGuruJi.online ↗
+            HarshGuruJi ↗
           </a>
         </div>
       )}
