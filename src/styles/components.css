@@ -918,3 +918,101 @@
   color: var(--color-primary);
   box-shadow: var(--shadow-sm);
 }
+
+/* Glassmorphism Surface Enhancements */
+.glass-panel {
+  background: rgba(16, 22, 35, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='light'] .glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* Stories & Moments Horizontal Scroll Bar */
+.stories-scroll-tray {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.stories-scroll-tray::-webkit-scrollbar {
+  display: none;
+}
+
+/* Desktop Navigation Button Modern Glow & Hover */
+.desktop-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+  text-align: left;
+}
+
+.desktop-nav-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+  transform: translateX(2px);
+}
+
+.desktop-nav-btn.active {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.16) 0%, rgba(139, 92, 246, 0.12) 100%);
+  border-color: rgba(99, 102, 241, 0.35);
+  color: var(--color-primary);
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.15);
+}
+
+/* Active Conversation Item Glow */
+.conversation-item {
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.conversation-item:hover {
+  background: var(--bg-card-hover) !important;
+}
+
+.conversation-item.selected {
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.14) 0%, rgba(99, 102, 241, 0.04) 100%) !important;
+  border-left: 3px solid var(--color-primary);
+}
+
+/* Live Online Pulse Animation */
+@keyframes onlinePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.online-pulse-dot {
+  animation: onlinePulse 2s infinite;
+}
+
+/* Web App Ambient Background Glow Elements */
+.ambient-glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.15;
+}
+

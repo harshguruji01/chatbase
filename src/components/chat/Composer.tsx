@@ -18,6 +18,7 @@ import { Capacitor } from '@capacitor/core';
 import { useChat } from '../../context/ChatContext';
 import { useBackButton } from '../../lib/useBackButton';
 import { useToast } from '../common/Toast';
+import { soundEffects } from '../../lib/soundEffects';
 
 export const Composer: React.FC = () => {
   const { sendMessage, uploadProgress, broadcastTyping } = useChat();
@@ -96,6 +97,8 @@ export const Composer: React.FC = () => {
     if (res?.error) {
       showToast(res.error, 'error');
       setText(content);
+    } else {
+      soundEffects.play('send');
     }
     setIsSending(false);
   };
@@ -110,6 +113,8 @@ export const Composer: React.FC = () => {
     });
     if (res?.error) {
       showToast(res.error, 'error');
+    } else {
+      soundEffects.play('send');
     }
     setIsSending(false);
   };

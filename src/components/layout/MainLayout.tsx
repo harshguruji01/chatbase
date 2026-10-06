@@ -17,6 +17,8 @@ import { SettingsModal } from '../settings/SettingsModal';
 import { PublicProfileModal } from '../profile/PublicProfileModal';
 import { BottomStickyAd } from '../ads/BottomStickyAd';
 import { InterstitialAdModal } from '../ads/InterstitialAdModal';
+import { AIChatModal } from '../ai/AIChatModal';
+import { CommandPalette } from '../common/CommandPalette';
 
 export const MainLayout: React.FC = () => {
   const { user } = useAuth();
@@ -26,10 +28,24 @@ export const MainLayout: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('chat');
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAIOpen, setIsAIOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [showInterstitialAd, setShowInterstitialAd] = useState(false);
   const [publicProfileUserId, setPublicProfileUserId] = useState<string | null>(null);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth > 900);
   const tabSwitchCountRef = useRef(0);
+
+  // Global Keyboard Shortcut for Command Palette: Ctrl+K / Cmd+K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleTabChange = (tab: TabType) => {
     if (activeConversation) {
@@ -49,6 +65,8 @@ export const MainLayout: React.FC = () => {
   }, [showToast]);
 
   // Back handler for closing modals
+  useBackButton(() => setIsCommandPaletteOpen(false), isCommandPaletteOpen, 92);
+  useBackButton(() => setIsAIOpen(false), isAIOpen, 85);
   useBackButton(() => setShowLocationModal(false), showLocationModal, 90);
   useBackButton(() => setIsSettingsOpen(false), isSettingsOpen, 90);
   useBackButton(() => setPublicProfileUserId(null), Boolean(publicProfileUserId), 80);
@@ -108,6 +126,8 @@ export const MainLayout: React.FC = () => {
           activeTab={activeTab}
           onSelectTab={handleTabChange}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenAI={() => setIsAIOpen(true)}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         />
       )}
 
@@ -225,6 +245,21 @@ export const MainLayout: React.FC = () => {
       <InterstitialAdModal
         isOpen={showInterstitialAd}
         onClose={() => setShowInterstitialAd(false)}
+      />
+
+      {/* Global GuruJi AI Assistant Modal */}
+      <AIChatModal
+        isOpen={isAIOpen}
+        onClose={() => setIsAIOpen(false)}
+      />
+
+      {/* Global Desktop Command Palette (Ctrl+K) */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onSelectTab={handleTabChange}
+        onOpenAI={() => setIsAIOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
     </div>
   );

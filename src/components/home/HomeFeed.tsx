@@ -15,6 +15,9 @@ import { useLanguage } from '../../context/LanguageContext';
 import { OutlinedButton } from '../common/OutlinedButton';
 import { BrandHeader } from '../common/BrandHeader';
 import { NativeFeedAd } from '../ads/NativeFeedAd';
+import { StoriesBar } from '../stories/StoriesBar';
+import { AIChatModal } from '../ai/AIChatModal';
+import { soundEffects } from '../../lib/soundEffects';
 
 interface PostItem {
   id: string;
@@ -132,9 +135,11 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onStartChat, onExploreUsers 
   const [posts, setPosts] = useState<PostItem[]>(FEED_DATABASE);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
+  const [isAIOpen, setIsAIOpen] = useState(false);
 
   // Shuffle feed on refresh to simulate live dynamic daily thoughts
   const handleRefresh = () => {
+    soundEffects.play('pop');
     setIsRefreshing(true);
     setTimeout(() => {
       const shuffled = [...FEED_DATABASE].sort(() => 0.5 - Math.random());
@@ -150,6 +155,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onStartChat, onExploreUsers 
   }, []);
 
   const toggleLike = (id: string) => {
+    soundEffects.play('reaction');
     setLikedPosts((prev) => ({
       ...prev,
       [id]: !prev[id],
@@ -224,6 +230,9 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onStartChat, onExploreUsers 
         </div>
       </div>
 
+      {/* Stories / Moments Bar */}
+      <StoriesBar />
+
       <div
         style={{
           maxWidth: '680px',
@@ -267,12 +276,27 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onStartChat, onExploreUsers 
               : 'Discover positive thoughts, daily lifestyle inspiration, and stay connected with real people.'}
           </p>
 
-          <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '4px', flexWrap: 'wrap' }}>
             <OutlinedButton variant="primary" size="sm" onClick={onStartChat} icon={<MessageCircle size={15} />}>
               {t('start_chat')}
             </OutlinedButton>
             <OutlinedButton variant="secondary" size="sm" onClick={onExploreUsers} icon={<Compass size={15} />}>
               {t('find_people')}
+            </OutlinedButton>
+            <OutlinedButton
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                soundEffects.play('pop');
+                setIsAIOpen(true);
+              }}
+              icon={<Sparkles size={15} />}
+              style={{
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.2))',
+                borderColor: 'var(--color-primary)',
+              }}
+            >
+              Ask AI ✨
             </OutlinedButton>
           </div>
         </div>
@@ -431,6 +455,12 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onStartChat, onExploreUsers 
         })}
       </div>
       </div>
+
+      {/* GuruJi AI Modal */}
+      <AIChatModal
+        isOpen={isAIOpen}
+        onClose={() => setIsAIOpen(false)}
+      />
     </div>
   );
 };

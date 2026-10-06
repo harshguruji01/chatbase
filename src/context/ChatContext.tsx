@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext';
 import type { Conversation, Message, MessageType, Profile } from '../types';
 import { triggerHaptics } from '../lib/utils';
 import { compressImage, compressAvatar } from '../lib/compression';
+import { soundEffects } from '../lib/soundEffects';
 
 interface ChatContextType {
   conversations: Conversation[];
@@ -258,6 +259,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // Mark read if it's not sent by current user
             if (newMsg.sender_id !== user.id) {
+              soundEffects.play('receive');
               await supabase
                 .from('messages')
                 .update({ status: 'read' })

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { ArrowLeft, MoreVertical, ShieldAlert, Ban, User, Users, LogOut, Trash2, ChevronDown } from 'lucide-react';
+import { ArrowLeft, MoreVertical, ShieldAlert, Ban, User, Users, LogOut, Trash2, ChevronDown, Search, X } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import { useAuth } from '../../context/AuthContext';
 import { Avatar } from '../common/Avatar';
@@ -36,13 +36,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile, i
   const [isReporting, setIsReporting] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
 
+  // In-Chat Search State
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState('');
+
   const isGroup = Boolean(activeConversation?.is_group);
   const otherUser = activeConversation?.other_member;
   const isBlocked = !isGroup && otherUser ? isUserBlocked(otherUser.id) : false;
   const groupMembersCount = activeConversation?.members?.length || 0;
 
   // Hardware/Browser Back Handlers:
-  // 1. Close menu if open (priority 50)
+  useBackButton(() => {
+    setIsSearchOpen(false);
+    setSearchKeyword('');
+  }, isSearchOpen, 55);
   useBackButton(() => setShowMenu(false), showMenu, 50);
   useBackButton(() => setShowGroupDetailsModal(false), showGroupDetailsModal, 60);
   useBackButton(() => setShowClearChatConfirm(false), showClearChatConfirm, 65);
@@ -352,15 +359,40 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile, i
         </div>
 
         {/* Header Actions Menu */}
-        <div style={{ position: 'relative' }}>
-          <OutlinedButton
-            variant="ghost"
-            size="sm"
-            className="btn-icon"
-            onClick={() => setShowMenu(!showMenu)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <button
+            type="button"
+            className="btn-ghost"
+            style={{
+              padding: '8px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: isSearchOpen ? 'var(--color-primary)' : 'var(--text-secondary)',
+              background: isSearchOpen ? 'var(--color-primary-light)' : 'transparent',
+              border: 'none',
+            }}
+            onClick={() => {
+              setIsSearchOpen(!isSearchOpen);
+              if (isSearchOpen) setSearchKeyword('');
+            }}
+            title="Search in Chat"
+            aria-label="Search messages"
           >
-            <MoreVertical size={18} />
-          </OutlinedButton>
+            <Search size={18} />
+          </button>
+
+          <div style={{ position: 'relative' }}>
+            <OutlinedButton
+              variant="ghost"
+              size="sm"
+              className="btn-icon"
+              onClick={() => setShowMenu(!showMenu)}
+            >
+              <MoreVertical size={18} />
+            </OutlinedButton>
 
           {showMenu && (
             <div
@@ -555,6 +587,59 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile, i
           )}
         </div>
       </div>
+    </div>
+
+      {/* In-Chat Search Bar */}
+      {isSearchOpen && (
+        <div
+          className="fade-in-up"
+          style={{
+            padding: '8px 16px',
+            background: 'var(--bg-input)',
+            borderBottom: '1px solid var(--border-color)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+          }}
+        >
+          <Search size={16} color="var(--color-primary)" />
+          <input
+            type="text"
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            placeholder="Search messages in this conversation..."
+            autoFocus
+            style={{
+              flex: 1,
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-primary)',
+              fontSize: '0.88rem',
+              outline: 'none',
+            }}
+          />
+          {searchKeyword && (
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)', fontWeight: 600 }}>
+              {messages.filter((m) => m.content?.toLowerCase().includes(searchKeyword.toLowerCase().trim())).length} found
+            </span>
+          )}
+          <button
+            onClick={() => {
+              setIsSearchOpen(false);
+              setSearchKeyword('');
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              padding: '2px',
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Messages Scroll Area */}
       <div
@@ -586,15 +671,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile, i
           🔒 Messages automatically expire and clean up after 30 days
         </div>
 
-        {messages.map((msg) => (
-          <MessageBubble
-            key={msg.id}
-            message={msg}
-            isOutgoing={msg.sender_id === user?.id}
-            isGroup={isGroup}
-            onDeleteMessage={deleteMessage}
-          />
-        ))}
+        {messages
+          .filter((m) => {
+            if (!searchKeyword.trim()) return true;
+            return m.content?.toLowerCase().includes(searchKeyword.toLowerCase().trim());
+          })
+          .map((msg) => (
+            <MessageBubble
+              key={msg.id}
+              message={msg}
+              isOutgoing={msg.sender_id === user?.id}
+              isGroup={isGroup}
+              onDeleteMessage={deleteMessage}
+            />
+          ))}
 
         <div ref={messagesEndRef} />
 

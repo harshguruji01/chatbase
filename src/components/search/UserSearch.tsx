@@ -10,6 +10,7 @@ import { useToast } from '../common/Toast';
 import { useLanguage } from '../../context/LanguageContext';
 import { useBackButton } from '../../lib/useBackButton';
 import { NearbyDiscovery } from '../nearby/NearbyDiscovery';
+import { soundEffects } from '../../lib/soundEffects';
 
 interface UserSearchProps {
   onStartChat: () => void;
@@ -138,6 +139,7 @@ export const UserSearch: React.FC<UserSearchProps> = ({ onStartChat, onViewProfi
       if (error) {
         showToast(error, 'error');
       } else {
+        soundEffects.play('pop');
         onStartChat();
       }
     } finally {

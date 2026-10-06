@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, MessageSquare, Users, MessageCircle, X, Sparkles, AlertCircle, Trash2, MoreVertical } from 'lucide-react';
+import { Search, MessageSquare, Users, MessageCircle, X, Sparkles, AlertCircle, Trash2, MoreVertical, Bookmark } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -13,6 +13,10 @@ import { useBackButton } from '../../lib/useBackButton';
 import type { TabType, Profile, Conversation } from '../../types';
 import { BrandHeader } from '../common/BrandHeader';
 import { CreateGroupModal } from './CreateGroupModal';
+import { StoriesBar } from '../stories/StoriesBar';
+import { AIChatModal } from '../ai/AIChatModal';
+import { SavedNotesModal } from './SavedNotesModal';
+import { soundEffects } from '../../lib/soundEffects';
 
 interface ConversationListProps {
   onSelectTab: (tab: TabType) => void;
@@ -44,9 +48,14 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab:
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [isProcessingConv, setIsProcessingConv] = useState(false);
 
+  const [isAIOpen, setIsAIOpen] = useState(false);
+  const [isSavedNotesOpen, setIsSavedNotesOpen] = useState(false);
+
   useBackButton(() => setShowConvOptionsModal(false), showConvOptionsModal, 45);
   useBackButton(() => setShowClearConfirmModal(false), showClearConfirmModal, 50);
   useBackButton(() => setShowDeleteConfirmModal(false), showDeleteConfirmModal, 50);
+  useBackButton(() => setIsAIOpen(false), isAIOpen, 60);
+  useBackButton(() => setIsSavedNotesOpen(false), isSavedNotesOpen, 60);
 
   const handleConfirmClearChat = async () => {
     if (!convToManage) return;
@@ -273,6 +282,152 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab:
 
       {/* Main Body */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
+        {/* Stories / Moments Tray (when not searching) */}
+        {!isSearching && (
+          <StoriesBar
+            onReplyToStory={(story) => {
+              showToast(`Reply sent to ${story.userName}!`, 'success');
+            }}
+          />
+        )}
+
+        {/* Pinned Smart Features: GuruJi AI & Saved Messages (when not searching) */}
+        {!isSearching && (
+          <div
+            style={{
+              padding: '10px 16px',
+              borderBottom: '1px solid var(--border-color)',
+              background: 'var(--bg-card)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+            }}
+          >
+            {/* 1. GuruJi AI Card */}
+            <div
+              onClick={() => {
+                soundEffects.play('pop');
+                setIsAIOpen(true);
+              }}
+              className="card card-hover"
+              style={{
+                padding: '10px 14px',
+                borderRadius: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer',
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.12) 100%)',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+              }}
+            >
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)',
+                  color: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.35)',
+                  flexShrink: 0,
+                }}
+              >
+                <Sparkles size={20} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                    GuruJi AI
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.65rem',
+                      fontWeight: 700,
+                      padding: '1px 6px',
+                      borderRadius: '999px',
+                      background: 'rgba(99, 102, 241, 0.25)',
+                      color: 'var(--color-primary)',
+                      border: '1px solid rgba(99, 102, 241, 0.4)',
+                    }}
+                  >
+                    ✨ AI Copilot
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Draft messages, translate & smart advice
+                </div>
+              </div>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary)' }}>
+                Ask AI →
+              </span>
+            </div>
+
+            {/* 2. Saved Notes Card */}
+            <div
+              onClick={() => {
+                soundEffects.play('click');
+                setIsSavedNotesOpen(true);
+              }}
+              className="card card-hover"
+              style={{
+                padding: '10px 14px',
+                borderRadius: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer',
+                background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(45, 212, 191, 0.08) 100%)',
+                border: '1px solid rgba(14, 165, 233, 0.25)',
+              }}
+            >
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #0EA5E9 0%, #2DD4BF 100%)',
+                  color: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(14, 165, 233, 0.3)',
+                  flexShrink: 0,
+                }}
+              >
+                <Bookmark size={19} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                    Saved Messages
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.65rem',
+                      fontWeight: 700,
+                      padding: '1px 6px',
+                      borderRadius: '999px',
+                      background: 'rgba(14, 165, 233, 0.2)',
+                      color: '#0284C7',
+                    }}
+                  >
+                    📌 Notes
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Personal reminders, bookmarks & code
+                </div>
+              </div>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#0EA5E9' }}>
+                Open →
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Horizontal Active / Quick Chat Tray (when not actively searching) */}
         {!isSearching && suggestedUsers.length > 0 && (
           <div
@@ -961,6 +1116,18 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectTab:
         onGroupCreated={(_convId) => {
           setIsCreateGroupOpen(false);
         }}
+      />
+
+      {/* GuruJi AI Assistant Modal */}
+      <AIChatModal
+        isOpen={isAIOpen}
+        onClose={() => setIsAIOpen(false)}
+      />
+
+      {/* Saved Notes Modal */}
+      <SavedNotesModal
+        isOpen={isSavedNotesOpen}
+        onClose={() => setIsSavedNotesOpen(false)}
       />
     </div>
   );
