@@ -1,8 +1,9 @@
 import React from 'react';
-import { Home, MessageSquare, Search, User } from 'lucide-react';
+import { Home, MessageSquare, Search, User, Crown } from 'lucide-react';
 import type { TabType } from '../../types';
 import { useChat } from '../../context/ChatContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { usePremium } from '../../context/PremiumContext';
 
 interface BottomNavProps {
   activeTab: TabType;
@@ -12,6 +13,7 @@ interface BottomNavProps {
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onSelectTab }) => {
   const { conversations } = useChat();
   const { t } = useLanguage();
+  const { isPremium } = usePremium();
 
   const totalUnread = conversations.reduce((acc, c) => acc + (c.unread_count || 0), 0);
 
@@ -56,7 +58,29 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onSelectTab }) 
         onClick={() => onSelectTab('profile')}
         title={t('profile')}
       >
-        <User size={22} />
+        <div style={{ position: 'relative', display: 'inline-flex' }}>
+          <User size={22} />
+          {isPremium && (
+            <span
+              style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-6px',
+                width: '13px',
+                height: '13px',
+                borderRadius: '50%',
+                background: '#f59e0b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1.5px solid var(--bg-card)',
+                boxShadow: '0 0 6px rgba(245, 158, 11, 0.6)',
+              }}
+            >
+              <Crown size={8} color="#fff" />
+            </span>
+          )}
+        </div>
         <span>{t('profile')}</span>
       </button>
     </nav>

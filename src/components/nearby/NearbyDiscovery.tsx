@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Compass, MapPin, RefreshCw, UserCheck, UserPlus, MessageCircle, AlertCircle, Lock, Sparkles, Download } from 'lucide-react';
+import { Compass, MapPin, RefreshCw, UserCheck, UserPlus, MessageCircle, AlertCircle, Lock, Sparkles, Download, Crown, EyeOff } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { AppDownloadModal } from '../common/AppDownloadModal';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
+import { usePremium } from '../../context/PremiumContext';
 import { Avatar } from '../common/Avatar';
 import { OutlinedButton } from '../common/OutlinedButton';
 import { getCurrentPosition } from '../../lib/location';
@@ -23,6 +24,13 @@ export const NearbyDiscovery: React.FC<NearbyDiscoveryProps> = ({
   const { user, profile, updateLocation } = useAuth();
   const { startChatWithUser } = useChat();
   const { showToast } = useToast();
+  const {
+    isPremium,
+    incognitoRadar,
+    setIncognitoRadar,
+    radarMaxDistance,
+    openUpgradeModal,
+  } = usePremium();
 
   const [nearbyUsers, setNearbyUsers] = useState<NearbyUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,7 +66,7 @@ export const NearbyDiscovery: React.FC<NearbyDiscoveryProps> = ({
       const { data, error } = await supabase.rpc('get_nearby_users', {
         p_lat: lat,
         p_lon: lon,
-        p_max_distance_km: 100.0,
+        p_max_distance_km: radarMaxDistance,
       });
 
       if (error) {
@@ -317,15 +325,54 @@ export const NearbyDiscovery: React.FC<NearbyDiscoveryProps> = ({
           </div>
         </div>
 
-        <OutlinedButton
-          variant="secondary"
-          size="sm"
-          onClick={fetchNearby}
-          isLoading={isLoading}
-          icon={<RefreshCw size={14} />}
-        >
-          Refresh
-        </OutlinedButton>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            onClick={() => {
+              if (!isPremium) {
+                openUpgradeModal('radar');
+              } else {
+                setIncognitoRadar(!incognitoRadar);
+              }
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '999px',
+              background: incognitoRadar
+                ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)'
+                : isPremium
+                ? 'rgba(245, 158, 11, 0.15)'
+                : 'rgba(255, 255, 255, 0.06)',
+              border: incognitoRadar
+                ? '1px solid #60a5fa'
+                : isPremium
+                ? '1px solid rgba(245, 158, 11, 0.4)'
+                : '1px solid var(--border-color)',
+              color: incognitoRadar ? '#ffffff' : isPremium ? '#fbbf24' : 'var(--text-secondary)',
+              fontSize: '0.76rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            title={isPremium ? 'Toggle Ghost Incognito Mode' : 'Unlock Ghost Radar with VIP'}
+          >
+            <EyeOff size={13} />
+            <span>{incognitoRadar ? 'Ghost Active 👻' : 'Ghost Radar'}</span>
+            {!isPremium && <Crown size={12} color="#f59e0b" />}
+          </button>
+
+          <OutlinedButton
+            variant="secondary"
+            size="sm"
+            onClick={fetchNearby}
+            isLoading={isLoading}
+            icon={<RefreshCw size={14} />}
+          >
+            Refresh
+          </OutlinedButton>
+        </div>
       </div>
 
       {/* Content Area */}

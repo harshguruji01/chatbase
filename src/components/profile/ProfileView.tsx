@@ -17,11 +17,14 @@ import {
   Languages,
   Download,
   Smartphone,
+  Crown,
 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { usePremium } from '../../context/PremiumContext';
+import { VIPBadge } from '../common/VIPBadge';
 import { Avatar } from '../common/Avatar';
 import { OutlinedButton } from '../common/OutlinedButton';
 import { PrivacySettingsModal } from './PrivacySettingsModal';
@@ -39,6 +42,7 @@ export const ProfileView: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const { showToast } = useToast();
+  const { isPremium, premiumPlan, openUpgradeModal } = usePremium();
 
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
 
@@ -125,10 +129,13 @@ export const ProfileView: React.FC = () => {
           <Avatar src={profile.avatar_url} name={profile.display_name} size="xl" />
 
           <div>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              {profile.display_name}
-            </h2>
-            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                {profile.display_name}
+              </h2>
+              <VIPBadge size="sm" />
+            </div>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginTop: '4px', marginBottom: 0 }}>
               @{profile.username}
             </p>
           </div>
@@ -202,6 +209,72 @@ export const ProfileView: React.FC = () => {
             >
               Settings
             </OutlinedButton>
+          </div>
+        </div>
+
+        {/* ChatBase VIP Membership Card */}
+        <div
+          onClick={() => openUpgradeModal()}
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            padding: '20px 22px',
+            borderRadius: 'var(--radius-lg)',
+            background: isPremium
+              ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.12) 100%)'
+              : 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(245, 158, 11, 0.15) 100%)',
+            border: isPremium ? '1.5px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(245, 158, 11, 0.35)',
+            boxShadow: isPremium ? '0 0 20px rgba(245, 158, 11, 0.15)' : 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
+                }}
+              >
+                <Crown size={22} color="#ffffff" />
+              </div>
+              <div>
+                <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  ChatBase VIP Membership
+                </div>
+                <div style={{ fontSize: '0.78rem', color: isPremium ? '#fbbf24' : 'var(--text-secondary)' }}>
+                  {isPremium
+                    ? `✓ Active Plan: ${premiumPlan.toUpperCase()} (All Perks Unlocked)`
+                    : 'Ad-Free • Unlimited AI • Ghost Radar • Custom Themes'}
+                </div>
+              </div>
+            </div>
+
+            <button
+              style={{
+                background: isPremium ? 'rgba(245, 158, 11, 0.2)' : 'linear-gradient(135deg, #f59e0b, #d97706)',
+                border: isPremium ? '1px solid rgba(245, 158, 11, 0.4)' : 'none',
+                color: '#ffffff',
+                padding: '6px 14px',
+                borderRadius: '999px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {isPremium ? 'Manage VIP' : 'Upgrade ✨'}
+            </button>
           </div>
         </div>
 

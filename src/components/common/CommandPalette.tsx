@@ -13,10 +13,12 @@ import {
   PlusCircle,
   X,
   CornerDownLeft,
+  Crown,
 } from 'lucide-react';
 import { useBackButton } from '../../lib/useBackButton';
 import { useTheme } from '../../context/ThemeContext';
 import { useChat } from '../../context/ChatContext';
+import { usePremium } from '../../context/PremiumContext';
 import { soundEffects } from '../../lib/soundEffects';
 import type { TabType } from '../../types';
 
@@ -48,6 +50,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 }) => {
   const { theme, setTheme } = useTheme();
   const { conversations, selectConversation } = useChat();
+  const { isPremium, premiumPlan, openUpgradeModal } = usePremium();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -119,6 +122,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       perform: () => {
         onClose();
         if (onOpenCreateGroup) onOpenCreateGroup();
+      },
+    },
+    {
+      id: 'open_vip_hub',
+      title: isPremium ? 'ChatBase VIP Membership Hub 👑' : 'Upgrade to ChatBase VIP ✨',
+      subtitle: isPremium ? `Active plan: ${premiumPlan.toUpperCase()} (Ad-free, Unlimited AI)` : 'Unlock Ad-free, Unlimited AI, Ghost Radar, and Exclusive Themes',
+      icon: <Crown size={18} color="#F59E0B" />,
+      category: 'Tools',
+      perform: () => {
+        onClose();
+        openUpgradeModal();
       },
     },
     {

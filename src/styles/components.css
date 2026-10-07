@@ -1016,3 +1016,24 @@
   opacity: 0.15;
 }
 
+/* ChatBase VIP Gold Effects */
+.vip-badge-active {
+  animation: vipShimmer 3s ease-in-out infinite alternate;
+}
+
+@keyframes vipShimmer {
+  0% {
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.7);
+  }
+}
+
+.vip-badge-free:hover {
+  border-color: rgba(245, 158, 11, 0.6) !important;
+  background: rgba(245, 158, 11, 0.2) !important;
+  transform: translateY(-1px);
+}
+
+

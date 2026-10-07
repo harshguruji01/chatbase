@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { VIPBadge } from '../common/VIPBadge';
 import { OutlinedButton } from '../common/OutlinedButton';
 import { BrandHeader } from '../common/BrandHeader';
 import { NativeFeedAd } from '../ads/NativeFeedAd';
@@ -205,6 +206,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onStartChat, onExploreUsers 
         <BrandHeader size="sm" showSubtitle={false} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <VIPBadge size="sm" />
           <button
             onClick={handleRefresh}
             className="refresh-btn"

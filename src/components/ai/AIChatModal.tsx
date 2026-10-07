@@ -9,9 +9,11 @@ import {
   Bot,
   User,
   Zap,
+  Crown,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { usePremium } from '../../context/PremiumContext';
 import { useToast } from '../common/Toast';
 import { useBackButton } from '../../lib/useBackButton';
 import { copyToClipboard } from '../../lib/utils';
@@ -31,6 +33,13 @@ export const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => 
   const { profile } = useAuth();
   const { language } = useLanguage();
   const { showToast } = useToast();
+  const {
+    isPremium,
+    aiQueriesRemaining,
+    maxAiQueries,
+    recordAIQuery,
+    openUpgradeModal,
+  } = usePremium();
 
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<AIMessage[]>(() => {
@@ -74,6 +83,10 @@ export const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => 
   const handleSend = async (textToSend?: string) => {
     const query = (textToSend || input).trim();
     if (!query || isThinking) return;
+
+    if (!isPremium && !recordAIQuery()) {
+      return;
+    }
 
     soundEffects.play('send');
     setInput('');
@@ -190,22 +203,44 @@ export const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => 
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                   GuruJi AI
                 </h3>
-                <span
-                  style={{
-                    fontSize: '0.68rem',
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: '999px',
-                    background: 'rgba(99, 102, 241, 0.2)',
-                    color: 'var(--color-primary)',
-                    border: '1px solid rgba(99, 102, 241, 0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <Zap size={10} fill="currentColor" /> Pro Assistant
-                </span>
+                {isPremium ? (
+                  <span
+                    style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '999px',
+                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      boxShadow: '0 0 10px rgba(245, 158, 11, 0.3)',
+                    }}
+                  >
+                    <Crown size={11} fill="currentColor" /> VIP Unlimited
+                  </span>
+                ) : (
+                  <span
+                    onClick={() => openUpgradeModal('ai')}
+                    style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '999px',
+                      background: aiQueriesRemaining > 0 ? 'rgba(99, 102, 241, 0.15)' : 'rgba(239, 68, 68, 0.2)',
+                      color: aiQueriesRemaining > 0 ? 'var(--color-primary)' : '#f87171',
+                      border: '1px solid rgba(99, 102, 241, 0.3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      cursor: 'pointer',
+                    }}
+                    title="Tap to unlock unlimited AI"
+                  >
+                    <Zap size={10} fill="currentColor" /> {aiQueriesRemaining}/{maxAiQueries} Free Left
+                  </span>
+                )}
               </div>
               <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                 Powered by HarshGuruJi Intelligent AI
@@ -458,6 +493,41 @@ export const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => 
             </button>
           ))}
         </div>
+
+        {/* Free Quota Exhausted Banner */}
+        {!isPremium && aiQueriesRemaining === 0 && (
+          <div
+            onClick={() => openUpgradeModal('ai')}
+            style={{
+              padding: '10px 16px',
+              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.1))',
+              borderTop: '1px solid rgba(245, 158, 11, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              gap: '10px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#fbbf24' }}>
+              <Crown size={15} />
+              <span>Daily free AI limit reached (5/5). Upgrade to <strong>ChatBase VIP</strong> for unlimited access!</span>
+            </div>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#fff',
+                background: '#f59e0b',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Unlock VIP 👑
+            </span>
+          </div>
+        )}
 
         {/* Input Bar */}
         <form

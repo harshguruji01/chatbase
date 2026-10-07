@@ -18,6 +18,9 @@ export interface Profile {
   role: 'user' | 'admin';
   created_at: string;
   updated_at: string;
+  is_premium?: boolean;
+  premium_plan?: 'monthly' | 'annual' | 'lifetime' | null;
+  premium_until?: string | null;
 }
 
 export interface NearbyUser {

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Star, ShieldCheck, Sparkles, Zap, ArrowRight } from 'lucide-react';
 import { AD_CONFIG } from '../../config/ads';
+import { usePremium } from '../../context/PremiumContext';
 
 interface NativeFeedAdProps {
   index?: number;
@@ -40,7 +41,10 @@ const SPONSORED_OFFERS = [
 ];
 
 export const NativeFeedAd: React.FC<NativeFeedAdProps> = ({ index = 0 }) => {
+  const { isPremium } = usePremium();
   const adRef = useRef<HTMLModElement>(null);
+
+  if (isPremium) return null;
   const offer = SPONSORED_OFFERS[index % SPONSORED_OFFERS.length];
   const IconComp = offer.icon;
 

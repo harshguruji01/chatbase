@@ -12,6 +12,7 @@ import {
   Sparkles,
   Volume2,
   VolumeX,
+  Crown,
 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import type { TabType } from '../../types';
@@ -19,6 +20,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { usePremium } from '../../context/PremiumContext';
+import { VIPBadge } from '../common/VIPBadge';
 import { BrandHeader } from '../common/BrandHeader';
 import { Avatar } from '../common/Avatar';
 import { AppDownloadModal } from '../common/AppDownloadModal';
@@ -43,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { conversations } = useChat();
   const { theme, setTheme } = useTheme();
   const { t } = useLanguage();
+  const { isPremium, openUpgradeModal } = usePremium();
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(soundEffects.isEnabled());
 
@@ -262,6 +266,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         )}
 
+        {/* 7. ChatBase VIP Membership */}
+        <button
+          className="desktop-nav-btn"
+          onClick={() => {
+            soundEffects.play('pop');
+            openUpgradeModal();
+          }}
+          style={{
+            background: isPremium
+              ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.2))'
+              : 'linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(139, 92, 246, 0.12))',
+            border: '1px solid rgba(245, 158, 11, 0.4)',
+            color: '#fbbf24',
+            marginTop: '4px',
+          }}
+          title={isPremium ? 'ChatBase VIP Active' : 'Upgrade to ChatBase VIP'}
+        >
+          <Crown size={19} color="#f59e0b" />
+          <span style={{ fontWeight: 700, color: '#f59e0b' }}>
+            {isPremium ? 'VIP Member 👑' : 'ChatBase VIP ✨'}
+          </span>
+          <span
+            style={{
+              marginLeft: 'auto',
+              fontSize: '0.62rem',
+              fontWeight: 800,
+              padding: '2px 6px',
+              borderRadius: '999px',
+              background: '#f59e0b',
+              color: '#FFF',
+            }}
+          >
+            {isPremium ? 'ACTIVE' : 'UPGRADE'}
+          </span>
+        </button>
+
         {/* Get Android App (Web Only) */}
         {!Capacitor.isNativePlatform() && (
           <div style={{ marginTop: 'auto', padding: '6px 4px 2px' }}>
@@ -381,8 +421,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <Avatar src={profile?.avatar_url} name={profile?.display_name || 'Me'} size="sm" isOnline />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 600, fontSize: '0.84rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {profile?.display_name}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontWeight: 600, fontSize: '0.84rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {profile?.display_name}
+              </span>
+              <VIPBadge size="xs" />
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
               {profile?.user_code}

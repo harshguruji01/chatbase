@@ -3,6 +3,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './components/common/Toast';
 import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { PremiumProvider } from './context/PremiumContext';
 import { ChatProvider } from './context/ChatContext';
 import { SplashScreen } from './components/auth/SplashScreen';
 import { LoginScreen } from './components/auth/LoginScreen';
@@ -44,10 +45,12 @@ export default function App() {
       <ToastProvider>
         <LanguageProvider>
           <AuthProvider>
-            <ChatProvider>
-              <LiveUpdateSync />
-              <ChatBaseApp />
-            </ChatProvider>
+            <PremiumProvider>
+              <ChatProvider>
+                <LiveUpdateSync />
+                <ChatBaseApp />
+              </ChatProvider>
+            </PremiumProvider>
           </AuthProvider>
         </LanguageProvider>
       </ToastProvider>

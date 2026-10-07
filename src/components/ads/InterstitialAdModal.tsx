@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles, Download, Star, ArrowRight } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { AD_CONFIG } from '../../config/ads';
+import { usePremium } from '../../context/PremiumContext';
 
 interface InterstitialAdModalProps {
   isOpen: boolean;
@@ -9,8 +10,11 @@ interface InterstitialAdModalProps {
 }
 
 export const InterstitialAdModal: React.FC<InterstitialAdModalProps> = ({ isOpen, onClose }) => {
+  const { isPremium } = usePremium();
   const [countdown, setCountdown] = useState(5);
   const [canSkip, setCanSkip] = useState(false);
+
+  if (isPremium) return null;
 
   useEffect(() => {
     if (!isOpen) {

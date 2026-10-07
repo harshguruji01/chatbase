@@ -19,9 +19,12 @@ import { BottomStickyAd } from '../ads/BottomStickyAd';
 import { InterstitialAdModal } from '../ads/InterstitialAdModal';
 import { AIChatModal } from '../ai/AIChatModal';
 import { CommandPalette } from '../common/CommandPalette';
+import { PremiumUpgradeModal } from '../common/PremiumUpgradeModal';
+import { usePremium } from '../../context/PremiumContext';
 
 export const MainLayout: React.FC = () => {
   const { user } = useAuth();
+  const { isPremium } = usePremium();
   const { activeConversation, selectConversation, startChatWithUser } = useChat();
   const { showToast } = useToast();
 
@@ -53,8 +56,8 @@ export const MainLayout: React.FC = () => {
     }
     setActiveTab(tab);
     tabSwitchCountRef.current += 1;
-    // Show high-converting interstitial ad on every 4th tab switch
-    if (tabSwitchCountRef.current > 0 && tabSwitchCountRef.current % 4 === 0) {
+    // Show high-converting interstitial ad on every 4th tab switch for non-premium users
+    if (!isPremium && tabSwitchCountRef.current > 0 && tabSwitchCountRef.current % 4 === 0) {
       setShowInterstitialAd(true);
     }
   };
@@ -261,6 +264,9 @@ export const MainLayout: React.FC = () => {
         onOpenAI={() => setIsAIOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
+
+      {/* ChatBase VIP Membership Hub Modal */}
+      <PremiumUpgradeModal />
     </div>
   );
 };

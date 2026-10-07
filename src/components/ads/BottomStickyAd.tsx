@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { X, Sparkles, Download, ArrowRight } from 'lucide-react';
 import { AD_CONFIG } from '../../config/ads';
+import { usePremium } from '../../context/PremiumContext';
 
 export const BottomStickyAd: React.FC = () => {
+  const { isPremium } = usePremium();
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
@@ -15,7 +17,7 @@ export const BottomStickyAd: React.FC = () => {
     }
   }, []);
 
-  if (isDismissed) return null;
+  if (isPremium || isDismissed) return null;
 
   const handleAdClick = () => {
     window.open(AD_CONFIG.defaultTargetUrl, '_blank', 'noopener,noreferrer');

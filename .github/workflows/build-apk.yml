@@ -54,3 +54,27 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Prepare Release APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/chatbase.apk
+
+      - name: Publish APK to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: "ChatBase APK v1.0.0 (VIP Premium Edition)"
+          body: |
+            ### 🚀 ChatBase Android APK - VIP Premium Edition
+            
+            **What's New in this Build:**
+            - 👑 **ChatBase VIP Membership Hub**: Gold prestige badges, membership management, and tier selection.
+            - 🚫 **100% Ad-Free**: Ad banners, sponsored feed posts, and interstitial popups suppressed for VIP users.
+            - ⚡ **Unlimited GuruJi AI Copilot**: Unlimited messages with high-speed priority responses.
+            - 👻 **Ghost Incognito Radar**: Scan nearby users privately without revealing GPS location.
+            - 🧭 **150km Proximity Booster**: Extended nearby radar scanner.
+            - 🎨 **Exclusive VIP Themes & Wallpapers**: Cosmic Galaxy, Emerald Aurora, Luxury Velvet Gold, and Cyberpunk Neon.
+            - 🎁 **VIP Promo Code Redemption** (e.g. `CHATBASEVIP`, `GOLD2026`, `PREMIUM`).
+          files: android/app/build/outputs/apk/debug/chatbase.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
