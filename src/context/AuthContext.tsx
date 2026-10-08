@@ -265,7 +265,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             regSuccess = true;
           }
         }
-      } catch (e) {}
+      } catch {}
 
       if (!regSuccess) {
         const { data: authData, error: authErr } = await supabase.auth.signUp({
@@ -292,7 +292,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               avatar_url: avatarUrl || null,
               phone: phone?.trim() || null,
             }, { onConflict: 'id' });
-          } catch (e) {}
+          } catch {}
         }
       }
 

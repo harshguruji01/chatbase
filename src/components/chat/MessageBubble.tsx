@@ -10,6 +10,7 @@ import {
   Copy,
   Heart,
   Smile,
+  Reply,
 } from 'lucide-react';
 import type { Message } from '../../types';
 import {
@@ -44,7 +45,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   onDeleteMessage,
 }) => {
   const { user } = useAuth();
-  const { toggleReaction } = useChat();
+  const { toggleReaction, setReplyToMessage } = useChat();
   const { showToast } = useToast();
 
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -274,6 +275,28 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </span>
           ) : (
             <>
+              {/* WhatsApp Quoted Reply Snippet */}
+              {message.reply_to && (
+                <div
+                  style={{
+                    background: isOutgoing ? 'rgba(0, 0, 0, 0.16)' : 'rgba(255, 255, 255, 0.08)',
+                    borderLeft: `3px solid ${isOutgoing ? '#ffffff' : 'var(--color-primary)'}`,
+                    borderRadius: '6px',
+                    padding: '4px 8px',
+                    marginBottom: '6px',
+                    fontSize: '0.76rem',
+                    lineHeight: 1.3,
+                  }}
+                >
+                  <div style={{ fontWeight: 700, color: isOutgoing ? '#ffffff' : 'var(--color-primary)', fontSize: '0.74rem' }}>
+                    {message.reply_to.sender_name || 'Member'}
+                  </div>
+                  <div style={{ opacity: 0.85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {message.reply_to.content}
+                  </div>
+                </div>
+              )}
+
               {/* Instagram Like / Pulsing Heart Message */}
               {message.type === 'like' && (
                 <div style={{ padding: '8px', textAlign: 'center' }}>
@@ -505,6 +528,30 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               }}
             >
               {/* React button */}
+              <button
+                onClick={() => {
+                  setReplyToMessage(message);
+                  setShowMenu(false);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 10px',
+                  fontSize: '0.85rem',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  borderRadius: '6px',
+                  textAlign: 'left',
+                }}
+                onMouseEnter={(e) => ((e.target as HTMLElement).style.background = 'var(--bg-card-hover)')}
+                onMouseLeave={(e) => ((e.target as HTMLElement).style.background = 'transparent')}
+              >
+                <Reply size={14} /> Reply
+              </button>
+
               <button
                 onClick={() => {
                   setShowReactionPicker(true);

@@ -44,11 +44,8 @@ export const NativeFeedAd: React.FC<NativeFeedAdProps> = ({ index = 0 }) => {
   const { isPremium } = usePremium();
   const adRef = useRef<HTMLModElement>(null);
 
-  if (isPremium) return null;
-  const offer = SPONSORED_OFFERS[index % SPONSORED_OFFERS.length];
-  const IconComp = offer.icon;
-
   useEffect(() => {
+    if (isPremium) return;
     try {
       if (typeof window !== 'undefined' && (window as any).adsbygoogle) {
         ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
@@ -56,7 +53,11 @@ export const NativeFeedAd: React.FC<NativeFeedAdProps> = ({ index = 0 }) => {
     } catch {
       // Ads fallback is handled gracefully
     }
-  }, []);
+  }, [isPremium]);
+
+  if (isPremium) return null;
+  const offer = SPONSORED_OFFERS[index % SPONSORED_OFFERS.length];
+  const IconComp = offer.icon;
 
   const handleClickAd = () => {
     window.open(AD_CONFIG.defaultTargetUrl, '_blank', 'noopener,noreferrer');

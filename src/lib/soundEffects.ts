@@ -1,7 +1,7 @@
 // Web Audio API Sound Effects Synthesizer for ChatBase
 // Completely zero external assets required - 100% synthesized in-browser
 
-type SoundType = 'send' | 'receive' | 'reaction' | 'click' | 'pop' | 'notify';
+type SoundType = 'send' | 'receive' | 'reaction' | 'click' | 'pop' | 'notify' | 'call_connect' | 'call_end';
 
 class SoundEffectsManager {
   private audioCtx: AudioContext | null = null;
@@ -182,11 +182,121 @@ class SoundEffectsManager {
           });
           break;
         }
+
+        case 'call_connect': {
+          // Cheerful upward chime (440 -> 660 -> 880Hz)
+          [440, 660, 880].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + i * 0.08);
+            gain.gain.setValueAtTime(0.12, now + i * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * 0.08 + 0.1);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + i * 0.08);
+            osc.stop(now + (i + 1) * 0.08 + 0.12);
+          });
+          break;
+        }
+
+        case 'call_end': {
+          // Gentle downward double tone (480Hz -> 320Hz)
+          const osc1 = ctx.createOscillator();
+          const osc2 = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc1.type = 'triangle';
+          osc2.type = 'triangle';
+          osc1.frequency.setValueAtTime(480, now);
+          osc2.frequency.setValueAtTime(320, now + 0.14);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(ctx.destination);
+          osc1.start(now);
+          osc1.stop(now + 0.14);
+          osc2.start(now + 0.14);
+          osc2.stop(now + 0.35);
+          break;
+        }
       }
     } catch (err) {
       console.warn('Sound effect error:', err);
     }
   }
+
+  private ringtoneInterval: ReturnType<typeof setInterval> | null = null;
+  private dialingInterval: ReturnType<typeof setInterval> | null = null;
+
+  public startRingtone(): void {
+    if (!this.enabled || this.ringtoneInterval) return;
+    const playRingCycle = () => {
+      const ctx = this.getContext();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      // Melodic double chime sequence
+      const melody = [587, 784, 880, 1046, 784];
+      melody.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.12);
+        gain.gain.setValueAtTime(0.15, now + i * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * 0.12 + 0.05);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.12);
+        osc.stop(now + (i + 1) * 0.12 + 0.08);
+      });
+    };
+
+    playRingCycle();
+    this.ringtoneInterval = setInterval(playRingCycle, 2400);
+  }
+
+  public stopRingtone(): void {
+    if (this.ringtoneInterval) {
+      clearInterval(this.ringtoneInterval);
+      this.ringtoneInterval = null;
+    }
+  }
+
+  public startDialing(): void {
+    if (!this.enabled || this.dialingInterval) return;
+    const playDialTone = () => {
+      const ctx = this.getContext();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      // Standard gentle dial pulse (440Hz + 480Hz dual tone)
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc1.frequency.setValueAtTime(440, now);
+      osc2.frequency.setValueAtTime(480, now);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.linearRampToValueAtTime(0.08, now + 1.2);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.25);
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 1.25);
+      osc2.stop(now + 1.25);
+    };
+
+    playDialTone();
+    this.dialingInterval = setInterval(playDialTone, 3200);
+  }
+
+  public stopDialing(): void {
+    if (this.dialingInterval) {
+      clearInterval(this.dialingInterval);
+      this.dialingInterval = null;
+    }
+  }
 }
 
 export const soundEffects = new SoundEffectsManager();
+

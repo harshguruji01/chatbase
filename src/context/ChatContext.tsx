@@ -22,11 +22,14 @@ interface ChatContextType {
   updateGroupInfo: (convId: string, title: string, avatarFile: File | null) => Promise<{ error?: string }>;
   addGroupMembers: (convId: string, memberIds: string[]) => Promise<{ error?: string }>;
   leaveGroup: (convId: string) => Promise<{ error?: string }>;
+  replyToMessage: Message | null;
+  setReplyToMessage: (msg: Message | null) => void;
   sendMessage: (options: {
     type: MessageType;
     content?: string;
     mediaFile?: File | Blob;
     duration?: number;
+    replyTo?: Message | null;
   }) => Promise<{ error?: string }>;
   deleteMessage: (messageId: string, forEveryone: boolean) => Promise<{ error?: string }>;
   clearChat: (convId: string) => Promise<{ error?: string }>;
@@ -46,6 +49,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
   const [isLoadingConversations, setIsLoadingConversations] = useState<boolean>(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState<boolean>(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -289,6 +293,72 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       )
+      .on('broadcast', { event: 'instant_message' }, (eventObj: any) => {
+        const payload = eventObj.payload as Message;
+        if (!payload || payload.sender_id === user.id) return;
+
+        // If message belongs to active conversation, render instantly (sub-50ms!)
+        if (activeConversation && payload.conversation_id === activeConversation.id) {
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === payload.id)) return prev;
+            return [...prev, { ...payload, status: 'read' }];
+          });
+          soundEffects.play('receive');
+          triggerHaptics(15);
+
+          // Instantly send back read receipt acknowledgement to sender
+          try {
+            activeChannelRef.current?.send({
+              type: 'broadcast',
+              event: 'message_ack',
+              payload: {
+                message_id: payload.id,
+                sender_id: payload.sender_id,
+                conversation_id: payload.conversation_id,
+                status: 'read',
+              },
+            });
+          } catch {
+            // ignore
+          }
+        } else {
+          // If for another conversation, notify and send delivered ack
+          soundEffects.play('notify');
+          try {
+            activeChannelRef.current?.send({
+              type: 'broadcast',
+              event: 'message_ack',
+              payload: {
+                message_id: payload.id,
+                sender_id: payload.sender_id,
+                conversation_id: payload.conversation_id,
+                status: 'delivered',
+              },
+            });
+          } catch {
+            // ignore
+          }
+        }
+        fetchConversations();
+      })
+      .on('broadcast', { event: 'message_ack' }, (eventObj: any) => {
+        const payload = eventObj.payload;
+        if (!payload || payload.sender_id !== user.id) return;
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === payload.message_id ? { ...m, status: payload.status } : m
+          )
+        );
+      })
+      .on('broadcast', { event: 'reconcile_id' }, (eventObj: any) => {
+        const payload = eventObj.payload;
+        if (!payload) return;
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === payload.temp_id ? { ...m, id: payload.real_id } : m
+          )
+        );
+      })
       .on('broadcast', { event: 'typing' }, ({ payload }) => {
         if (
           activeConversation &&
@@ -342,6 +412,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setActiveConversation(conversation);
     setIsOtherTyping(false);
     setTypingUserName('');
+    setReplyToMessage(null);
     if (conversation) {
       setConversations((prev) =>
         prev.map((c) => (c.id === conversation.id ? { ...c, unread_count: 0 } : c))
@@ -590,11 +661,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     content = '',
     mediaFile,
     duration,
+    replyTo,
   }: {
     type: MessageType;
     content?: string;
     mediaFile?: File | Blob;
     duration?: number;
+    replyTo?: Message | null;
   }) => {
     if (!user || !activeConversation) return { error: 'No active conversation.' };
 
@@ -620,6 +693,24 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     else if (type === 'image') summaryText = content.trim() ? `📷 ${content.trim()}` : '📷 Photo';
     else if (type === 'like') summaryText = '❤️';
 
+    // Format quoted reply metadata
+    const effectiveReply = replyTo !== undefined ? replyTo : replyToMessage;
+    const replyMeta = effectiveReply
+      ? {
+          id: effectiveReply.id,
+          sender_name: effectiveReply.sender?.display_name || 'Member',
+          content:
+            effectiveReply.content ||
+            (effectiveReply.type === 'image'
+              ? '📷 Photo'
+              : effectiveReply.type === 'voice'
+              ? '🎤 Voice note'
+              : effectiveReply.type === 'video'
+              ? '📹 Video'
+              : 'Message'),
+        }
+      : null;
+
     // 1. Generate optimistic message for 0ms visual feedback
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     let localPreviewUrl: string | undefined;
@@ -640,10 +731,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       media_url: localPreviewUrl,
       media_duration: duration || null,
       media_size_bytes: mediaFile?.size || null,
-      status: 'sending',
+      status: 'sent',
       deleted_for_everyone: false,
       deleted_by_users: [],
       reactions: null,
+      reply_to: replyMeta,
       created_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       sender: profile || undefined,
@@ -652,6 +744,26 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Immediately display optimistic message in chat
     setMessages((prev) => [...prev, optimisticMsg]);
     triggerHaptics(15);
+    setReplyToMessage(null);
+
+    // Immediately broadcast to channel for sub-50ms instant delivery to partner
+    try {
+      activeChannelRef.current?.send({
+        type: 'broadcast',
+        event: 'instant_message',
+        payload: {
+          ...optimisticMsg,
+          sender: profile || {
+            id: user.id,
+            display_name: user.email?.split('@')[0] || 'Member',
+            avatar_url: null,
+            user_code: '',
+          },
+        },
+      });
+    } catch {
+      // ignore
+    }
 
     // Immediately update conversations list preview in sidebar
     setConversations((prev) =>
@@ -787,12 +899,27 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...(newMsg as Message),
           sender: (newMsg as any).sender || profile || undefined,
           status: 'sent',
+          reply_to: replyMeta,
         };
         // Replace temporary optimistic message with confirmed server message
         setMessages((prev) =>
           prev.map((m) => (m.id === tempId ? fullMsg : m))
         );
         triggerHaptics(20);
+
+        try {
+          activeChannelRef.current?.send({
+            type: 'broadcast',
+            event: 'reconcile_id',
+            payload: {
+              temp_id: tempId,
+              real_id: newMsg.id,
+              conversation_id: activeConversation.id,
+            },
+          });
+        } catch {
+          // ignore
+        }
       }
 
       return {};
@@ -1018,6 +1145,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearChat,
         deleteConversation,
         toggleReaction,
+        replyToMessage,
+        setReplyToMessage,
         refreshConversations: fetchConversations,
         blockUser,
         unblockUser,

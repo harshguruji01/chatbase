@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { ArrowLeft, MoreVertical, ShieldAlert, Ban, User, Users, LogOut, Trash2, ChevronDown, Search, X } from 'lucide-react';
+import { ArrowLeft, MoreVertical, ShieldAlert, Ban, User, Users, LogOut, Trash2, ChevronDown, Search, X, Video, Phone } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import { useAuth } from '../../context/AuthContext';
+import { useCall } from '../../context/CallContext';
 import { Avatar } from '../common/Avatar';
 import { MessageBubble } from './MessageBubble';
 import { Composer } from './Composer';
@@ -23,6 +24,7 @@ interface ChatWindowProps {
 export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile, isDesktopDualPane = false }) => {
   const { user } = useAuth();
   const { activeConversation, messages, deleteMessage, clearChat, blockUser, isUserBlocked, isOtherTyping, typingUserName } = useChat();
+  const { startCall } = useCall();
   const { showToast } = useToast();
 
   const [showMenu, setShowMenu] = useState(false);
@@ -360,6 +362,54 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile, i
 
         {/* Header Actions Menu */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {!isGroup && otherUser && (
+            <>
+              <button
+                type="button"
+                className="btn-ghost"
+                style={{
+                  padding: '8px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--text-secondary)',
+                  background: 'transparent',
+                  border: 'none',
+                  transition: 'background 0.15s ease',
+                }}
+                onClick={() => otherUser && startCall(otherUser, 'video', activeConversation.id)}
+                title="WhatsApp Video Call"
+                aria-label="Start Video Call"
+              >
+                <Video size={19} />
+              </button>
+
+              <button
+                type="button"
+                className="btn-ghost"
+                style={{
+                  padding: '8px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--text-secondary)',
+                  background: 'transparent',
+                  border: 'none',
+                  transition: 'background 0.15s ease',
+                }}
+                onClick={() => otherUser && startCall(otherUser, 'audio', activeConversation.id)}
+                title="WhatsApp Voice Call"
+                aria-label="Start Voice Call"
+              >
+                <Phone size={18} />
+              </button>
+            </>
+          )}
+
           <button
             type="button"
             className="btn-ghost"
@@ -645,6 +695,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, onViewProfile, i
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
+        className="whatsapp-chat-bg"
         style={{
           flex: 1,
           overflowY: 'auto',

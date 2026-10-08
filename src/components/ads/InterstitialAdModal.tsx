@@ -14,10 +14,8 @@ export const InterstitialAdModal: React.FC<InterstitialAdModalProps> = ({ isOpen
   const [countdown, setCountdown] = useState(5);
   const [canSkip, setCanSkip] = useState(false);
 
-  if (isPremium) return null;
-
   useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen || isPremium) {
       setCountdown(5);
       setCanSkip(false);
       return;
@@ -35,9 +33,9 @@ export const InterstitialAdModal: React.FC<InterstitialAdModalProps> = ({ isOpen
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isOpen]);
+  }, [isOpen, isPremium]);
 
-  if (!isOpen) return null;
+  if (!isOpen || isPremium) return null;
 
   const handleAction = () => {
     window.open(AD_CONFIG.defaultTargetUrl, '_blank', 'noopener,noreferrer');

@@ -98,6 +98,7 @@ export interface Message {
   deleted_for_everyone: boolean;
   deleted_by_users: string[];
   reactions?: Record<string, string> | null; // e.g. { [userId]: '❤️' }
+  reply_to?: { id: string; sender_name?: string; content?: string } | null;
   created_at: string;
   expires_at: string;
   // sender profile joined

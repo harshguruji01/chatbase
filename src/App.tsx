@@ -5,11 +5,15 @@ import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PremiumProvider } from './context/PremiumContext';
 import { ChatProvider } from './context/ChatContext';
+import { CallProvider } from './context/CallContext';
 import { SplashScreen } from './components/auth/SplashScreen';
 import { LoginScreen } from './components/auth/LoginScreen';
 import { RegisterScreen } from './components/auth/RegisterScreen';
 import { MainLayout } from './components/layout/MainLayout';
 import { LiveUpdateSync } from './components/common/LiveUpdateSync';
+import { IncomingCallModal } from './components/call/IncomingCallModal';
+import { ActiveCallModal } from './components/call/ActiveCallModal';
+import { FloatingCallBubble } from './components/call/FloatingCallBubble';
 
 const ChatBaseApp: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -36,7 +40,14 @@ const ChatBaseApp: React.FC = () => {
   }
 
   // Main Application (Chat, Nearby, Search, Profile)
-  return <MainLayout />;
+  return (
+    <>
+      <MainLayout />
+      <IncomingCallModal />
+      <ActiveCallModal />
+      <FloatingCallBubble />
+    </>
+  );
 };
 
 export default function App() {
@@ -47,8 +58,10 @@ export default function App() {
           <AuthProvider>
             <PremiumProvider>
               <ChatProvider>
-                <LiveUpdateSync />
-                <ChatBaseApp />
+                <CallProvider>
+                  <LiveUpdateSync />
+                  <ChatBaseApp />
+                </CallProvider>
               </ChatProvider>
             </PremiumProvider>
           </AuthProvider>
@@ -57,3 +70,4 @@ export default function App() {
     </ThemeProvider>
   );
 }
+

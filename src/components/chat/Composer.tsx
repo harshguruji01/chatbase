@@ -8,6 +8,7 @@ import {
   Camera,
   Video,
   Heart,
+  X,
 } from 'lucide-react';
 import { EmojiPicker } from './EmojiPicker';
 import { InlineVoiceRecorder } from './InlineVoiceRecorder';
@@ -21,7 +22,7 @@ import { useToast } from '../common/Toast';
 import { soundEffects } from '../../lib/soundEffects';
 
 export const Composer: React.FC = () => {
-  const { sendMessage, uploadProgress, broadcastTyping } = useChat();
+  const { sendMessage, uploadProgress, broadcastTyping, replyToMessage, setReplyToMessage } = useChat();
   const { showToast } = useToast();
 
   const [text, setText] = useState('');
@@ -48,10 +49,6 @@ export const Composer: React.FC = () => {
 
   const handleMicClick = () => {
     setShowActionsMenu(false);
-    if (!Capacitor.isNativePlatform()) {
-      setShowDownloadModal(true);
-      return;
-    }
     setIsRecordingInline(true);
   };
 
@@ -190,6 +187,59 @@ export const Composer: React.FC = () => {
 
   return (
     <div className="ig-composer-container">
+      {/* WhatsApp-style Quoted Reply Preview */}
+      {replyToMessage && (
+        <div
+          className="fade-in-up"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'var(--bg-secondary, #1E293B)',
+            borderLeft: '4px solid var(--color-primary, #38BDF8)',
+            padding: '8px 12px',
+            borderRadius: '10px',
+            marginBottom: '8px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          }}
+        >
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-primary, #38BDF8)', display: 'block' }}>
+              Replying to {replyToMessage.sender?.display_name || 'Member'}
+            </span>
+            <span
+              style={{
+                fontSize: '0.82rem',
+                color: 'var(--text-secondary, rgba(255,255,255,0.7))',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                display: 'block',
+              }}
+            >
+              {replyToMessage.content || (replyToMessage.type === 'image' ? '📷 Photo' : replyToMessage.type === 'voice' ? '🎤 Voice note' : 'Message')}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setReplyToMessage(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted, #94A3B8)',
+              cursor: 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              borderRadius: '50%',
+            }}
+            title="Cancel Reply"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Hidden File Inputs */}
       <input
         ref={imageInputRef}

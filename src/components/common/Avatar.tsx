@@ -6,6 +6,7 @@ interface AvatarProps {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   isOnline?: boolean;
   className?: string;
+  style?: React.CSSProperties;
   onClick?: () => void;
 }
 
@@ -15,6 +16,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   size = 'md',
   isOnline,
   className = '',
+  style,
   onClick,
 }) => {
   const getInitials = (str: string) => {
@@ -29,7 +31,7 @@ export const Avatar: React.FC<AvatarProps> = ({
     <div
       className={`avatar avatar-${size} ${className}`}
       onClick={onClick}
-      style={{ cursor: onClick ? 'pointer' : 'default' }}
+      style={{ cursor: onClick ? 'pointer' : 'default', ...style }}
       title={name}
     >
       {src ? (
