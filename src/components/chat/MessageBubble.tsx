@@ -51,6 +51,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const [showMenu, setShowMenu] = useState(false);
   const [showHeartBurst, setShowHeartBurst] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -58,6 +59,47 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const daysRemaining = getDaysRemaining(message.expires_at);
+
+  const handleToggleSpeed = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = playbackSpeed === 1 ? 1.5 : playbackSpeed === 1.5 ? 2 : 1;
+    setPlaybackSpeed(next);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = next;
+    }
+  };
+
+  const renderFormattedText = (raw: string) => {
+    const parts = raw.split(/(`[^`]+`|\*[^*]+\*|_[^_]+_|~[^~]+~)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
+        return (
+          <code
+            key={i}
+            style={{
+              background: isOutgoing ? 'rgba(0, 0, 0, 0.22)' : 'rgba(255, 255, 255, 0.12)',
+              padding: '1px 5px',
+              borderRadius: '4px',
+              fontFamily: 'monospace',
+              fontSize: '0.9em',
+            }}
+          >
+            {part.slice(1, -1)}
+          </code>
+        );
+      }
+      if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
+        return <strong key={i}>{part.slice(1, -1)}</strong>;
+      }
+      if (part.startsWith('_') && part.endsWith('_') && part.length > 2) {
+        return <em key={i}>{part.slice(1, -1)}</em>;
+      }
+      if (part.startsWith('~') && part.endsWith('~') && part.length > 2) {
+        return <del key={i}>{part.slice(1, -1)}</del>;
+      }
+      return part;
+    });
+  };
 
   // Stop audio on unmount
   useEffect(() => {
@@ -431,6 +473,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       style={{
                         display: 'flex',
                         justifyContent: 'space-between',
+                        alignItems: 'center',
                         fontSize: '0.74rem',
                         opacity: 0.85,
                       }}
@@ -440,7 +483,26 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                           ? formatDuration(Math.floor(audioCurrentTime))
                           : formatDuration(message.media_duration || 0)}
                       </span>
-                      <span>Voice note</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={handleToggleSpeed}
+                          style={{
+                            background: isOutgoing ? 'rgba(255, 255, 255, 0.22)' : 'rgba(99, 102, 241, 0.15)',
+                            border: 'none',
+                            color: isOutgoing ? '#FFFFFF' : 'var(--color-primary)',
+                            borderRadius: '10px',
+                            padding: '1px 6px',
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                          title="Toggle playback speed"
+                        >
+                          {playbackSpeed}x
+                        </button>
+                        <span>Voice note</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -458,10 +520,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 </div>
               )}
 
-              {/* Normal Text / Emoji Message */}
+              {/* Normal Text / Emoji Message with Inline Rich Formatting */}
               {message.content && message.type !== 'voice' && message.type !== 'image' && message.type !== 'like' && (
-                <p style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0 }}>
-                  {message.content}
+                <p style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0, lineHeight: 1.45 }}>
+                  {renderFormattedText(message.content)}
                 </p>
               )}
             </>

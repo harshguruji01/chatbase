@@ -21,8 +21,18 @@ import { useBackButton } from '../../lib/useBackButton';
 import { useToast } from '../common/Toast';
 import { soundEffects } from '../../lib/soundEffects';
 
+const QUICK_REPLIES = [
+  '👍 Got it!',
+  '❤️ Love this',
+  '🔥 Amazing!',
+  '📞 Call in 5m',
+  '🙏 Thanks!',
+  '✨ On my way',
+  '🚀 Let\'s do it'
+];
+
 export const Composer: React.FC = () => {
-  const { sendMessage, uploadProgress, broadcastTyping, replyToMessage, setReplyToMessage } = useChat();
+  const { sendMessage, uploadProgress, broadcastTyping, replyToMessage, setReplyToMessage, activeConversation } = useChat();
   const { showToast } = useToast();
 
   const [text, setText] = useState('');
@@ -38,6 +48,28 @@ export const Composer: React.FC = () => {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Restore draft when switching conversation
+  useEffect(() => {
+    if (!activeConversation) return;
+    try {
+      const draft = localStorage.getItem(`chatbase_draft_${activeConversation.id}`);
+      if (draft) setText(draft);
+      else setText('');
+    } catch {}
+  }, [activeConversation?.id]);
+
+  // Persist draft in real-time
+  useEffect(() => {
+    if (!activeConversation) return;
+    try {
+      if (text.trim()) {
+        localStorage.setItem(`chatbase_draft_${activeConversation.id}`, text);
+      } else {
+        localStorage.removeItem(`chatbase_draft_${activeConversation.id}`);
+      }
+    } catch {}
+  }, [text, activeConversation?.id]);
 
   // Hardware/Browser Back Handlers for all child overlays in composer
   useBackButton(() => setShowActionsMenu(false), showActionsMenu, 60);
@@ -76,28 +108,46 @@ export const Composer: React.FC = () => {
     }
   };
 
-  const handleSendText = async () => {
-    if (!text.trim() || isSending) return;
+  // Ultra-Fast Non-Blocking Send: clears UI instantly without freezing input!
+  const handleSendText = () => {
+    if (!text.trim()) return;
     const content = text.trim();
     setText('');
-    setIsSending(true);
     broadcastTyping(false);
+
+    if (activeConversation) {
+      try {
+        localStorage.removeItem(`chatbase_draft_${activeConversation.id}`);
+      } catch {}
+    }
 
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
 
-    const res = await sendMessage({
+    soundEffects.play('send');
+    sendMessage({
       type: 'text',
       content,
+    }).then((res) => {
+      if (res?.error) {
+        showToast(res.error, 'error');
+        setText(content);
+      }
     });
-    if (res?.error) {
-      showToast(res.error, 'error');
-      setText(content);
-    } else {
-      soundEffects.play('send');
-    }
-    setIsSending(false);
+  };
+
+  // 1-Tap Quick Reply Handler
+  const handleSendQuickReply = (quickText: string) => {
+    soundEffects.play('send');
+    sendMessage({
+      type: 'text',
+      content: quickText,
+    }).then((res) => {
+      if (res?.error) {
+        showToast(res.error, 'error');
+      }
+    });
   };
 
   const handleSendHeart = async () => {
@@ -237,6 +287,52 @@ export const Composer: React.FC = () => {
           >
             <X size={16} />
           </button>
+        </div>
+      )}
+
+      {/* Ultra-Fast Quick Reply Suggestion Chips */}
+      {!isRecordingInline && !text.trim() && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            overflowX: 'auto',
+            padding: '2px 10px 8px 10px',
+            scrollbarWidth: 'none',
+          }}
+          className="no-scrollbar"
+        >
+          {QUICK_REPLIES.map((chip, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleSendQuickReply(chip)}
+              style={{
+                flexShrink: 0,
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '16px',
+                padding: '4px 12px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                color: 'var(--text-secondary, #cbd5e1)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-primary)';
+                e.currentTarget.style.color = '#fff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.color = 'var(--text-secondary, #cbd5e1)';
+              }}
+            >
+              {chip}
+            </button>
+          ))}
         </div>
       )}
 

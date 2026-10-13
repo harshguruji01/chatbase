@@ -5,6 +5,7 @@ import type { Conversation, Message, MessageType, Profile } from '../types';
 import { triggerHaptics } from '../lib/utils';
 import { compressImage, compressAvatar } from '../lib/compression';
 import { soundEffects } from '../lib/soundEffects';
+import { showSystemNotification, requestNotificationPermission } from '../lib/notifications';
 
 interface ChatContextType {
   conversations: Conversation[];
@@ -40,6 +41,7 @@ interface ChatContextType {
   unblockUser: (targetUserId: string) => Promise<{ error?: string }>;
   isUserBlocked: (targetUserId: string) => boolean;
   blockedUserIds: string[];
+  requestNotificationPermission: () => Promise<boolean>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -59,6 +61,19 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const activeChannelRef = useRef<any>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-request system/native notification permissions on mount
+  useEffect(() => {
+    requestNotificationPermission().catch(() => {});
+  }, []);
+
+  const formatNotificationSnippet = (m: Partial<Message>) => {
+    if (m.type === 'voice') return '🎤 Voice message';
+    if (m.type === 'image') return '📷 Photo';
+    if (m.type === 'video') return '🎥 Video';
+    if (m.type === 'like') return '❤️ Liked';
+    return m.content || 'New message';
+  };
 
   // Fetch list of blocked users
   const fetchBlockedUsers = useCallback(async () => {
@@ -152,9 +167,23 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
-  // Fetch messages for active conversation
+  // Fetch messages for active conversation (with 0ms instant local cache)
   const fetchMessages = useCallback(async (convId: string) => {
     if (!user) return;
+    
+    // 1. Instant 0ms Cache Render: display stored messages immediately while network fetches
+    try {
+      const cachedStr = sessionStorage.getItem(`chatbase_cache_${convId}`);
+      if (cachedStr) {
+        const cachedMsgs = JSON.parse(cachedStr);
+        if (Array.isArray(cachedMsgs) && cachedMsgs.length > 0) {
+          setMessages(cachedMsgs);
+        }
+      }
+    } catch {
+      // ignore
+    }
+
     setIsLoadingMessages(true);
     try {
       const { data, error } = await supabase
@@ -182,24 +211,30 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         setMessages(visibleMessages);
 
+        // Update instant cache for next time
+        try {
+          sessionStorage.setItem(`chatbase_cache_${convId}`, JSON.stringify(visibleMessages.slice(-60)));
+        } catch {}
+
         // Mark unread as 0 in membership and immediately update local state
         setConversations((prev) =>
           prev.map((c) => (c.id === convId ? { ...c, unread_count: 0 } : c))
         );
 
-        await supabase
-          .from('conversation_members')
-          .update({ unread_count: 0, last_read_at: new Date().toISOString() })
-          .eq('conversation_id', convId)
-          .eq('user_id', user.id);
-
-        // Live Read Receipts: Mark incoming messages as read in database
-        await supabase
-          .from('messages')
-          .update({ status: 'read' })
-          .eq('conversation_id', convId)
-          .neq('sender_id', user.id)
-          .in('status', ['sent', 'delivered']);
+        // Non-blocking parallel update for receipts
+        Promise.allSettled([
+          supabase
+            .from('conversation_members')
+            .update({ unread_count: 0, last_read_at: new Date().toISOString() })
+            .eq('conversation_id', convId)
+            .eq('user_id', user.id),
+          supabase
+            .from('messages')
+            .update({ status: 'read' })
+            .eq('conversation_id', convId)
+            .neq('sender_id', user.id)
+            .in('status', ['sent', 'delivered'])
+        ]);
       }
     } catch (err) {
       console.error('Error fetching messages:', err);
@@ -277,6 +312,28 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
 
+          // Trigger Force System Notification for all incoming messages
+          if (newMsg.sender_id !== user.id) {
+            supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', newMsg.sender_id)
+              .single()
+              .then(({ data: senderProfile }) => {
+                const senderName = senderProfile?.display_name || senderProfile?.username || 'ChatBase';
+                showSystemNotification({
+                  title: `${senderName} • ChatBase`,
+                  body: formatNotificationSnippet(newMsg),
+                  conversationId: newMsg.conversation_id,
+                  avatarUrl: senderProfile?.avatar_url || undefined,
+                  onClick: () => {
+                    const conv = conversations.find((c) => c.id === newMsg.conversation_id);
+                    if (conv) selectConversation(conv);
+                  },
+                });
+              });
+          }
+
           // Refresh conversation list to show latest message preview and badge
           fetchConversations();
         }
@@ -339,6 +396,23 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // ignore
           }
         }
+
+        // Trigger Force System Notification for incoming instant message
+        if (payload.sender_id !== user.id) {
+          const senderProfile = payload.sender as Profile | undefined;
+          const senderName = senderProfile?.display_name || senderProfile?.username || 'ChatBase';
+          showSystemNotification({
+            title: `${senderName} • ChatBase`,
+            body: formatNotificationSnippet(payload),
+            conversationId: payload.conversation_id,
+            avatarUrl: senderProfile?.avatar_url || undefined,
+            onClick: () => {
+              const conv = conversations.find((c) => c.id === payload.conversation_id);
+              if (conv) selectConversation(conv);
+            },
+          });
+        }
+
         fetchConversations();
       })
       .on('broadcast', { event: 'message_ack' }, (eventObj: any) => {
@@ -873,8 +947,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: insertErr.message };
       }
 
-      // Update conversation last message in DB
-      await supabase
+      // Non-blocking parallel background sync for conversation preview and unread counts
+      const updateConvPromise = supabase
         .from('conversations')
         .update({
           last_message_text: summaryText,
@@ -882,17 +956,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })
         .eq('id', activeConversation.id);
 
-      // Increment other member's unread count
-      if (targetUserId) {
-        try {
-          await supabase.rpc('increment_unread', {
-            conv_id: activeConversation.id,
-            target_user: targetUserId,
-          });
-        } catch {
-          // ignore if rpc not present
-        }
-      }
+      const unreadPromise = targetUserId
+        ? Promise.resolve(
+            supabase.rpc('increment_unread', {
+              conv_id: activeConversation.id,
+              target_user: targetUserId,
+            })
+          ).catch(() => null)
+        : Promise.resolve();
+
+      Promise.allSettled([updateConvPromise, unreadPromise]);
 
       if (newMsg) {
         const fullMsg: Message = {
@@ -1152,6 +1225,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         unblockUser,
         isUserBlocked,
         blockedUserIds,
+        requestNotificationPermission,
       }}
     >
       {children}
