@@ -1,13 +1,14 @@
 # robots.txt — chat.webguruji.online
 User-agent: *
 Allow: /
+Allow: /ads.txt
 Allow: /chat.html
 Allow: /chat-app.html
 Disallow: /admin*
 
 Sitemap: https://chat.webguruji.online/sitemap.xml
-Sitemap: https://www.webguruji.online/sitemap_index.xml
-Sitemap: https://www.webguruji.online/sitemap.xml
+Sitemap: https://webguruji.online/sitemap_index.xml
+Sitemap: https://webguruji.online/sitemap.xml
 Sitemap: https://store.webguruji.online/sitemap.xml
 Sitemap: https://books.webguruji.online/sitemap.xml
 Sitemap: https://ai.webguruji.online/sitemap.xml
