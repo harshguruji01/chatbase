@@ -35,6 +35,7 @@ interface AuthContextType {
   deleteAccount: () => Promise<{ error?: string }>;
   refreshProfile: () => Promise<void>;
   changePassword: (newPassword: string) => Promise<{ error?: string }>;
+  resetPassword: (email: string) => Promise<{ error?: string }>;
   removeSavedAccount: (id: string) => void;
 }
 
@@ -384,6 +385,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      if (!cleanEmail || !cleanEmail.includes('@')) {
+        return { error: 'Please provide a valid email address.' };
+      }
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: window.location.origin,
+      });
+      if (error) return { error: error.message };
+      return {};
+    } catch (err: any) {
+      return { error: err.message || 'Failed to send password reset email.' };
+    }
+  };
+
   const isAdmin = profile?.role === 'admin';
 
   return (
@@ -403,6 +420,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteAccount,
         refreshProfile,
         changePassword,
+        resetPassword,
         removeSavedAccount,
       }}
     >

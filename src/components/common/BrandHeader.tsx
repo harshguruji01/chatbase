@@ -24,7 +24,7 @@ export const BrandHeader: React.FC<BrandHeaderProps> = ({ size = 'md', showSubti
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <img
           src={brandLogo || './chatbase.png'}
-          alt="ChatBase Logo"
+          alt="GuruChats Logo"
           style={{ width: logoSizes[size], height: logoSizes[size], borderRadius: size === 'lg' ? '16px' : '10px', objectFit: 'contain' }}
         />
         <span
@@ -38,15 +38,15 @@ export const BrandHeader: React.FC<BrandHeaderProps> = ({ size = 'md', showSubti
             letterSpacing: '-0.5px',
           }}
         >
-          ChatBase
+          GuruChats
         </span>
       </div>
 
       {showSubtitle && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          <span>Part of</span>
+          <span>Developed by</span>
           <a
-            href="https://www.webguruji.online"
+            href="https://webguruji.online"
             target="_blank"
             rel="noopener noreferrer"
             style={{

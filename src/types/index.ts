@@ -7,9 +7,11 @@ export interface Profile {
   email?: string | null;
   avatar_url?: string | null;
   bio?: string | null;
+  status_message?: string | null;
   is_private: boolean;
   appear_in_nearby: boolean;
   show_online_status: boolean;
+  read_receipts_enabled?: boolean;
   last_seen: string;
   latitude?: number | null;
   longitude?: number | null;
@@ -82,7 +84,7 @@ export interface ConversationMember {
   profile?: Profile;
 }
 
-export type MessageType = 'text' | 'emoji' | 'voice' | 'video' | 'image' | 'like';
+export type MessageType = 'text' | 'emoji' | 'voice' | 'video' | 'image' | 'like' | 'document' | 'contact' | 'location';
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
 
 export interface Message {
@@ -93,12 +95,16 @@ export interface Message {
   content: string;
   media_url?: string | null;
   media_duration?: number | null; // seconds for voice
-  media_size_bytes?: number | null; // bytes for video/image
+  media_size_bytes?: number | null; // bytes for video/image/doc
+  file_name?: string | null; // original document/attachment filename
   status: MessageStatus;
   deleted_for_everyone: boolean;
   deleted_by_users: string[];
   reactions?: Record<string, string> | null; // e.g. { [userId]: '❤️' }
   reply_to?: { id: string; sender_name?: string; content?: string } | null;
+  is_starred?: boolean;
+  is_edited?: boolean;
+  edited_at?: string | null;
   created_at: string;
   expires_at: string;
   // sender profile joined

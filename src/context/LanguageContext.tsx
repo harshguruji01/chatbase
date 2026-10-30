@@ -17,7 +17,7 @@ const translations: Translations = {
   profile: { en: 'Profile', hi: 'प्रोफाइल' },
 
   // Home Feed
-  daily_greeting: { en: 'Welcome to ChatBase', hi: 'चैटबेस में आपका स्वागत है' },
+  daily_greeting: { en: 'Welcome to GuruChats', hi: 'गुरुचैट्स में आपका स्वागत है' },
   thought_of_day: { en: 'Thought of the Day', hi: 'आज का सुविचार' },
   lifestyle_tips: { en: 'Lifestyle & Wellness', hi: 'लाइफस्टाइल और स्वास्थ्य' },
   refresh_feed: { en: 'Refresh Feed', hi: 'नया देखें' },
@@ -34,6 +34,22 @@ const translations: Translations = {
   type_message: { en: 'Type a message...', hi: 'संदेश टाइप करें...' },
   online: { en: 'Online', hi: 'ऑनलाइन' },
   offline: { en: 'Offline', hi: 'ऑफलाइन' },
+  typing: { en: 'is typing...', hi: 'टाइप कर रहा है...' },
+  forward: { en: 'Forward', hi: 'आगे भेजें' },
+  reply: { en: 'Reply', hi: 'जवाब दें' },
+  copy: { en: 'Copy', hi: 'कॉपी करें' },
+  star: { en: 'Star Message', hi: 'स्टार संदेश' },
+  unstar: { en: 'Unstar', hi: 'स्टार हटाएं' },
+  edit: { en: 'Edit Message', hi: 'संदेश बदलें' },
+  delete_for_me: { en: 'Delete for me', hi: 'मेरे लिए हटाएं' },
+  delete_for_everyone: { en: 'Delete for everyone', hi: 'सभी के लिए हटाएं' },
+  document: { en: 'Document', hi: 'दस्तावेज़' },
+  location: { en: 'Location', hi: 'स्थान / लोकेशन' },
+  contact: { en: 'Contact', hi: 'संपर्क' },
+  voice_call: { en: 'Voice Call', hi: 'वॉयस कॉल' },
+  video_call: { en: 'Video Call', hi: 'वीडियो कॉल' },
+  today: { en: 'Today', hi: 'आज' },
+  yesterday: { en: 'Yesterday', hi: 'कल' },
 
   // Search
   search_placeholder: { en: 'Search by Name, Username or 8-digit ID...', hi: 'नाम, यूजरनेम या 8-डिजिट ID से खोजें...' },
